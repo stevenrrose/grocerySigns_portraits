@@ -299,7 +299,7 @@ app.get('/history', function(req, res, next) {
  * 
  * Template file for main HTML page.
  */
-var mainPageTpl = swig.compileFile('../client/grocery-signs.html');
+var mainPageTpl = swig.compileFile('../client/grocery-portraits.html');
 
 /**
  * /
@@ -709,9 +709,9 @@ app.get('/pi-feed', function(req, res) {
  * 
  * HTTP server instance.
  */
-var server = app.listen(3000, function () {
+var server = app.listen(3001, function () {
   var host = server.address().address;
   var port = server.address().port;
 
-  console.log('Grocery Stores app listening on http://%s:%s', host, port);
+  console.log('Grocery Portraits app listening on http://%s:%s', host, port);
 });

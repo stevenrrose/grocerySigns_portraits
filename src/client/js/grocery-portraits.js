@@ -138,7 +138,7 @@ function loadPDF(url, container, options) {
  *
  */
  
-/** Default page format class (see grocery-signs.css) */
+/** Default page format class (see grocery-portraits.css) */
 var pageFormatClass = "page-us";
 
 /** Delay for scheduled refresh events. */

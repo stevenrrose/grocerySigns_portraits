@@ -4,7 +4,7 @@
  */
 
 var mongoose = require('mongoose');
-mongoose.connect('mongodb://localhost/grocery-signs');
+mongoose.connect('mongodb://localhost/grocery-portraits');
 
 var Schema = mongoose.Schema;
 

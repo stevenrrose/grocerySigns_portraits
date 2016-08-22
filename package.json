@@ -1,5 +1,5 @@
 {
-  "name": "grocery-signs",
+  "name": "grocery-portraits",
   "version": "1.0.0",
   "main": "./src/server/index.js",
   "author": {
@@ -10,10 +10,10 @@
   "license": "UNLICENSED",
   "repository": {
     "type": "git",
-    "url": "git://github.com//grocery-signs.git"
+    "url": "git://github.com//grocery-portraits.git"
   },
   "bugs": {
-    "url": "http://github.com//grocery-signs/issues"
+    "url": "http://github.com//grocery-portraits/issues"
   },
   "dependencies": {
     "body-parser": "^1.14.1",

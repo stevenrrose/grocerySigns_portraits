@@ -128,6 +128,7 @@ app.get('/scraper/fetchImage', function(req, res, next) {
         
         // Ensure that the requested image belongs to the given provider/id scraper result,
         // to prevent abuse.
+        /*TODO replace by provider pattern
         ScraperResult.findOne({provider: provider, id: id}, function(err, result) {
             if (err) return next(err);
 
@@ -135,11 +136,12 @@ app.get('/scraper/fetchImage', function(req, res, next) {
                 console.log("Rejecting image " + url);
                 return res.status(403).end();
             }
-        
+        */
             // Image belongs to scraper result, fetch & store remote data.
             request({url: url, encoding: 'binary'}, function (error, response, body) {
                 if (!error && response.statusCode == 200) {
                     console.log("Got remote image", url);
+                    /*
                     var image = new Image;
                     image.url = url;
                     image.type = response.headers['content-type'];
@@ -148,9 +150,12 @@ app.get('/scraper/fetchImage', function(req, res, next) {
                         if (err) return next(err);
                         console.log("Saved image to MongoDB", url);
                     });
+                    */
                 }
             }).pipe(res);
+            /*
         });
+        */
     });
 });
 

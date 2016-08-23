@@ -358,32 +358,22 @@ function fetchCallback(provider, info) {
         ga('send', 'event', {
             eventCategory: 'Scraper',
             eventAction: 'success',
-            eventLabel: provider.name + " ID=" + info.itemId,
+            eventLabel: provider.name,
             'dimension1': provider.name,
             'metric2': 1
         });
         
         // Success, gather & display item data.
-        console.log("fetchCallback", info);      
-        displayMessage(true, "Success!", provider.name + " ID = <a class='alert-link' target='_blank' href=\'" + info.url + "\'>" + info.itemId  + "</a>");
+        console.log("fetchCallback", info);
+        displayMessage(true, "Success!", provider.name + " <a class='alert-link' target='_blank' href=\'" + info.url + "\'>" + info.id + " / " + info.label + "</a>");
         
         var sentences = processSentences(info);
         var images = processImages(info);
         var seed = generateRandomSeed();
         
-        // Bookmark result.
-        bookmarkResult({
-            provider: provider.name,
-            id: info.itemId,
-            seed: seed,
-            sentences: sentences,
-            images: images
-        });
-        
         // Update app state with new info.
         updateState({
             provider: provider.name,
-            id: info.itemId,
             randomize: $("#randomize").prop('checked'),
             seed: seed,
             sentences: sentences,
@@ -392,7 +382,7 @@ function fetchCallback(provider, info) {
     } else {
         // Failure.
         console.error("fetchCallback", info);      
-        displayMessage(false, "Scraping failed!", provider.name + " ID = <a class='alert-link' target='_blank' href=\'" + info.url + "\'>" + info.itemId + "</a>");
+        displayMessage(false, "Scraping failed!", provider.name + " error: " + info.error);
     }
 
     // Done!
@@ -408,24 +398,10 @@ function fetchCallback(provider, info) {
  */
 function processSentences(info) {
     // Build sentences to populate fields with.
-    // - title, vendor and price (even empty to ensure predictable order).
-    var sentences = [
-        normalizeString(info.title), 
-        normalizeString(info.vendor), 
-        normalizeString(info.price),
-    ];
-    // - nonempty feature bullet items.
-    $.each(info.features||[], function(i, v) {
-        v = normalizeString(v);
-        if (v != "") sentences.push(v);
-    });
-    // - nonempty description sentences.
-    $.each(info.description||[], function(i, v) {
-        v = normalizeString(v);
-        if (v != "") sentences.push(v);
-    });
-    // - nonempty review sentences.
-    $.each(info.reviews||[], function(i, v) {
+    var sentences = [];
+    
+    // - nonempty sentences.
+    $.each(info.sentences||[], function(i, v) {
         v = normalizeString(v);
         if (v != "") sentences.push(v);
     });
@@ -450,7 +426,7 @@ function processImages(info) {
 }
 
 /**
- *  Search for random items and call fetchCallback() upon result.
+ *  Scrape random content and call fetchCallback() upon result.
  *  
  *  @param provider     Provider to scrape.
  */
@@ -458,10 +434,9 @@ function scrapeRandom(provider) {
     // Disable interface elements.
     enableInterface(false);
     
-    // Generate random search string.
-    var str = randomStr(provider.randomSearchStringLength);
-    var label = provider.name + " items matching '" + str + "'";
-    progress(1, 2, "Searching for " + provider.name + " items matching '" + str + "'...");
+    // Fetch content from provider.
+    var label = "Fetching " + provider.name + " content";
+    progress(1, 1, label + "...");
 
     // GA: scrape request.
     ga('send', 'event', {
@@ -472,39 +447,13 @@ function scrapeRandom(provider) {
         'metric1': 1
     });
 
-    provider.search(str, function(results) {
-        if (!results || !results.length) {
-            // No or invalid results.
-            console.error("scrapeRandom", "Empty results");
-            displayMessage(false, "Scraping failed!", provider.name + " search string = " + str);
-            
-            // Stop there.
-            enableInterface(true);
-            return;
-        }
-        
-        // Pick & fetch a random item in the first result page.
-        var index = Math.floor(Math.random()*results.length);
-        var itemId = results[index].itemId;
-        progress(2, 2, "Fetching " + provider.name + " item " + itemId + "...");
-        provider.fetch(itemId, function(info) {fetchCallback(provider, info);});
-    });
-}
-
-/**
- * Scrape item given its item ID.
- *  
- *  @param provider     Provider to scrape.
- *  @param itemId       Item ID of the item to scrape.
- */
-function scrapeItem(provider, itemId) {
-    // Disable interface elements.
-    enableInterface(false);
-    
-    // Fetch given item.
-    itemId = itemId.trim();
-    progress(1, 1, "Fetching " + provider.name + " item " + itemId + "...");
-    provider.fetch(itemId, function(info) {fetchCallback(provider, info);});
+    try {
+        provider.fetch(function(info) {fetchCallback(provider, info);});
+    } catch (e) {
+        console.log("exception", e);
+        displayMessage(false, "Exception!", "Exception: " + e);
+        enableInterface(true);
+    }
 }
 
 /**
@@ -626,6 +575,7 @@ function updateState(state, replace) {
     currentHash = hash;
     currentState = state;
     
+    /*TODO
     if (replace) {
         history.replaceState(state, null);
     } else {
@@ -635,6 +585,7 @@ function updateState(state, replace) {
         }
         history.pushState(state, null, url);
     }
+    */
     
     computeActualMaxFieldLengths(state.seed);
     populateFields();

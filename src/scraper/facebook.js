@@ -155,14 +155,15 @@
      *  @param callback     Function called with content info.
      */ 
     provider.fetch = function(callback) {
+        var info = {success: false};
         authorize(function(response) {
             if (response.status == "connected") {
                 // Get user posts & extract sentences.
-                getUserPosts(minPosts, function(info) {
-                    if (info.posts) {
-                        info.sentences = [];
-                        for (var i = 0; i < info.posts.length; i++) {
-                            var sentences = splitSentences(info.posts[i]);
+                info.sentences = [];
+                getUserPosts(minPosts, function(infoPosts) {
+                    if (infoPosts.posts) {
+                        for (var i = 0; i < infoPosts.posts.length; i++) {
+                            var sentences = splitSentences(infoPosts.posts[i]);
                             for (var j = 0; j < sentences.length; j++) {
                                 info.sentences.push(sentences[j]);
                             }
@@ -170,13 +171,12 @@
                     }
                     
                     // Done!
+                    info.success = true;
                     callback(info);
                 });
             } else {
                 // Can't issue API calls.
                 console.error(response);
-                var info = {};
-                info.success = false;
                 switch (response.status) {
                     case "unknown":         info.error = "User not logged into Facebook";   break;
                     case "not_authorized":  info.error = "Authorization denied";            break;

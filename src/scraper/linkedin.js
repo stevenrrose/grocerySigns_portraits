@@ -115,6 +115,7 @@
      *  @param callback     Function called with content info.
      */ 
     provider.fetch = function(callback) {
+        var info = {};
         authorize(function() {
             if (IN.User.isAuthorized()) {
                 // Get user info & extract sentences.
@@ -133,7 +134,6 @@
                     'picture-urls::(original)',
                 ];
                 IN.API.Raw("/people/~:(" + fields.join(',') + ")?format=json").result(function(response) {
-                    var info = {};
                     info.success = true;
                     
                     // Main info.
@@ -191,7 +191,6 @@
                 })
             } else {
                 // Can't issue API calls.
-                var info = {};
                 info.success = false;
                 info.error = "Authorization denied";
                 callback(info);

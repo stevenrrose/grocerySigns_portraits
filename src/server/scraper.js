@@ -28,6 +28,7 @@ function include(path) {
 global.providers = {};
 include('../scraper/facebook.js');
 include('../scraper/linkedin.js');
+include('../scraper/gmail.js');
 
 // Exports the above *providers* variable.
 exports.providers = providers;

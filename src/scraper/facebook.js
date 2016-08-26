@@ -17,7 +17,7 @@
         //TODO remove
         urlPattern: /^$/
     };
-    providers["Facebook"] = provider;
+    providers[provider.name] = provider;
     
     if (typeof $ === 'undefined') {
         // Running on server, only metadata is needed.
@@ -37,7 +37,7 @@
     
     // Load the SDK asynchronously
     window.fbAsyncInit = function() {
-        console.log("Facebook SDK loaded");
+        console.log("Facebook API loaded");
         FB.init({
             appId   : APP_ID,
             cookie  : true,
@@ -178,8 +178,9 @@
                 var info = {};
                 info.success = false;
                 switch (response.status) {
-                    case "unknown":         info.error = "User not logged into Facebook.";
-                    case "not_authorized":  info.error = "User not logged into application.";
+                    case "unknown":         info.error = "User not logged into Facebook";   break;
+                    case "not_authorized":  info.error = "Authorization denied";            break;
+                    default:                info.error = "Authorization error";             break;
                 }
                 callback(info);
             }

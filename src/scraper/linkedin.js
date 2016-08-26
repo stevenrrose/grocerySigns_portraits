@@ -17,7 +17,7 @@
         //TODO remove
         urlPattern: /^$/
     };
-    providers["LinkedIn"] = provider;
+    providers[provider.name] = provider;
     
     if (typeof $ === 'undefined') {
         // Running on server, only metadata is needed.
@@ -32,18 +32,18 @@
      */
     
     // LinkedIn settings.
-    var APP_ID = '787q99ukiatyi8';
+    var API_KEY = '787q99ukiatyi8';
     
     // Load the SDK asynchronously
     window.inAsyncInit = function() {
-        console.log("LinkedIn SDK loaded");
+        console.log("LinkedIn API loaded");
     };
     (function(d, s, id) {
         var js, fjs = d.getElementsByTagName(s)[0];
         if (d.getElementById(id)) return;
         js = d.createElement(s); js.id = id;
         js.src = "//platform.linkedin.com/in.js";
-        js.innerHTML = "api_key: " + APP_ID + "\nonLoad: inAsyncInit\nauthorize: yes\nlang: en_US";
+        js.innerHTML = "api_key: " + API_KEY + "\nonLoad: inAsyncInit\nauthorize: yes\nlang: en_US";
         fjs.parentNode.insertBefore(js, fjs);
     }(document, 'script', 'linkedin-jssdk'));
     
@@ -54,38 +54,43 @@
      */     
     var authorize = function(callback) {
         // LinkedIn IN.User.authorize() doesn't call our callback immediately upon failure (e.g. user closed the popup or refused to 
-        // log in), so we have to use the following trick: 
-        // - The SDK opens the login popup from an iframe that gets destroyed with the popup, so we have to check periodically that 
-        //   the iframe still exists. There is no way to do otherwise (e.g. event) because of CORS restrictions.
-        // - Callbacks passed to failed IN.User.authorize() calls are called eventually if the authorization succeeds later on, so we have 
-        //   to protect them against double calls.
+        // log in), and there is no built-in way to detect popup window close events, so we have to use the trick described here: 
+        //
+        //      https://github.com/google/google-api-javascript-client/issues/25#issuecomment-76695596
+        //
+        // It involves hijacking the standard window.open function just before the API call, then periodically checking for the window's
+        // 'closed' state. If closed, we call the callback function. 
+        // Callbacks passed to failed IN.User.authorize() calls are called eventually if the authorization succeeds later on, so we have 
+        // to protect them against double calls with a flag.
         
         // Callback execution flag. Prevents double calls.
         var called = false;
         
-        // Authorization iframe monitoring script.
-        var id = setInterval(function() {
- 			var iframes = document.getElementsByTagName("iframe");
- 			for (var i = 0; i < iframes.length; i++) {
- 				if (iframes[i].src.match(/\.linkedin\.com\//)) {
-                    // Authorization iframe still exists.
- 					return;
- 				}
- 			}
+        // window.open wrapper.
+        (function(wrapped) {
+            window.open = function() {
+                // re-assign the original window.open after one usage
+                window.open = wrapped;
 
-            // Authorization iframe no longer exists, this means that the popup was closed one way or another (success or failure).
-            // Stop monitoring and call the callback function.
- 			clearInterval(id);
- 			if (!called) {
-                called = true;
-                callback();
-            }
- 		}, 500/*ms*/);
- 	
-        // Issue authorize call, and call the callback function upon success.
+                var win = wrapped.apply(this, arguments);
+                var i = setInterval(function() {
+                    if (win.closed) {
+                        clearInterval(i);
+                        setTimeout(function(){ 
+                            if (!called) { // Protect against double calls.
+                                called = true;
+                                callback();
+                            }
+                        }, 100);
+                    }
+                }, 100);
+                return win;
+            };
+        })(window.open);
+        
+        // Issue call as usual.
         IN.User.authorize(function() {
-            clearInterval(id);
- 			if (!called) {
+ 			if (!called) { // Protect against double calls.
                 called = true;
                 callback();
             }
@@ -188,7 +193,7 @@
                 // Can't issue API calls.
                 var info = {};
                 info.success = false;
-                info.error = "User not logged into application.";
+                info.error = "Authorization denied";
                 callback(info);
             }
         });

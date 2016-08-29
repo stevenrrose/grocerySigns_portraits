@@ -150,6 +150,9 @@ var refreshEvent = null;
 /** Last scraped texts. */
 var scrapedTexts = {};
 
+/** Last loaded images. */
+var loadedImages = [];
+
 /** Last scraped images. */
 var scrapedImages = [];
 
@@ -161,13 +164,13 @@ var scrapedImages = [];
  * @see ImageFile
  */
 function loadImages(state) {
-    scrapedImages = [];
+    loadedImages = [];
     $.each(state.images||[], function(i, url) {
         if (url.match(/^data:/)) {
             // Don't load data URIs through the fetchImage proxy since we already have the data as base64.
-            scrapedImages[i] = new ImageFile(url, imageLoaded);
+            loadedImages[i] = new ImageFile(url, imageLoaded);
         } else {
-            scrapedImages[i] = new ImageFile(
+            loadedImages[i] = new ImageFile(
                     fetchImage 
                     + "?url=" + encodeURIComponent(url) 
                     + "&provider=" + encodeURIComponent(state.provider)
@@ -339,10 +342,13 @@ function displayMessage(success, title, message) {
 function populateFields() {
     var sentences;
     if (currentState.randomize) {
+        // Shuffle sentences & images.
         sentences = shuffleSentences(currentState.sentences, currentState.seed);
+        scrapedImages = shuffleImages(loadedImages, currentState.seed);
     } else {
-        // Use sentences in order.
+        // Use sentences & images in order.
         sentences = currentState.sentences;
+        scrapedImages = loadedImages;
     }
 
     // Populate fields with resulting values.

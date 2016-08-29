@@ -61,7 +61,14 @@
     /** Immediate mode flag for authorization. */
     var immediate = false;
     
-
+    /**
+     * Get image data URI from base64url string.
+     */
+    var getImageUri = function(data, type) {
+        // Gmail API calls use the base64url encoding, so convert chars 62-63 from -_ to +/.
+        return 'data:' + type + ';base64,' + data.replace(/-/g,'+').replace(/_/g,'/');
+    }
+     
     /**
      * Ensure that the Gmail user is logged & the app is authenticated before issuing calls.
      *
@@ -136,6 +143,12 @@
                 batch.then(
                     function(response) {
                         var info = {messages: []};
+                        
+                        // Batch for image attachments.
+                        var hasImages = false;
+                        var batchImages = gapi.client.newBatch();
+                        var imageRequestInfos = []; // Holds the message object for the matching batchImage request ID.
+                        
                         for (var id in response.result) {
                             var result = response.result[id].result;
                             if (result.error) {
@@ -154,6 +167,7 @@
                                 }
                                 
                                 // Get body TODO
+                                // TODO iterate over parts with text/plain or text/html
                                 /* use base64url and not plain base64
 http://stackoverflow.com/questions/24811008/gmail-api-decoding-messages-in-javascript
 https://en.wikipedia.org/wiki/Base64#Implementations_and_history
@@ -162,14 +176,63 @@ https://github.com/client9/stringencoders
 http://kjur.github.io/jsjws/tool_b64udec.html
 */
                                 
-                                // Get images TODO
+                                
+                                // Process parts.
+                                var parts = result.payload.parts;
+                                if (parts) {
+                                    for (var i = 0; i < parts.length; i++) {
+                                        var part = parts[i];
+                                        switch (part.mimeType) {//TODO multipart/alternative
+                                            case 'text/plain':
+                                                //TODO
+                                                break;
+                                                
+                                            case 'text/html':
+                                                //TODO
+                                                break;
+                                                
+                                            default:
+                                                if (part.mimeType.match(/^image\//)) {
+                                                    // Attached image. Schedule request in batch.
+                                                    hasImages = true;
+                                                    var id = batchImages.add(gapi.client.gmail.users.messages.attachments.get({userId: 'me', messageId: message.id, id: part.body.attachmentId}));
+                                                    imageRequestInfos[id] = {message: message, mimeType: part.mimeType};
+                                                }
+                                        }
+                                    }
+                                }
                                 
                                 info.messages.push(message);
                             }
                         }
                         
-                        // Done!
-                        callback(info);
+                        if (hasImages) {
+                            batchImages.then(
+                                function(response) {
+                                    for (var id in response.result) {
+                                        var result = response.result[id].result;
+                                        if (result.error) {
+                                            // Ignore.
+                                        } else {
+                                            // Build data URI from result.
+                                            var requestInfo = imageRequestInfos[id];
+                                            if (!requestInfo.message.images) requestInfo.message.images = [];
+                                            requestInfo.message.images.push(getImageUri(result.data, requestInfo.mimeType));
+                                        }
+                                    }
+                                    
+                                    // Done!
+                                    callback(info);
+                                },
+                                function(reason) {
+                                    // Attachment request failed, ignore as we already have some data to work with (subject lines, bodies...).
+                                    callback(info);
+                                }
+                            );
+                        } else {
+                             // Done!
+                            callback(info);
+                        }
                     },
                     function(reason) {
                         // Pass to callback.

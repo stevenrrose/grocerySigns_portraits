@@ -29,10 +29,12 @@
      *
      * Interface with the Facebook web API (client only).
      *
+     * App URL: https://developers.facebook.com/apps/112125819241682/dashboard/
+     *
      */
     
     // Facebook settings.
-    var APP_ID = '321932444815770';
+    var APP_ID = '112125819241682';
     var APP_SCOPES = 'public_profile,user_about_me,user_birthday,user_education_history,user_hometown,user_location,user_photos,user_posts,user_work_history,user_religion_politics';
     
     // Load the SDK asynchronously

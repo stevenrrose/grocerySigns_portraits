@@ -29,10 +29,12 @@
      *
      * Interface with the Gmail web API (client only).
      *
+     * App URL: https://console.developers.google.com/apis/credentials?project=grocery-portraits
+     *
      */
     
     // Gmail settings.
-    var CLIENT_ID = "612453794408-e72qm8av2gi1sa7s1tq36o2aio1ksfqa.apps.googleusercontent.com";
+    var CLIENT_ID = "612453794408-nqvjmtgmsm0am8l9o2rahu36mlrg0qgd.apps.googleusercontent.com";
     var SCOPES = 'profile,https://www.googleapis.com/auth/userinfo.profile,https://www.googleapis.com/auth/gmail.readonly'.split(',');
     
     // Load the SDK asynchronously
@@ -147,10 +149,18 @@
                                     var header = headers[i];
                                     if (header.name.toLowerCase() == 'subject') {
                                         message.subject = header.value;
+                                        break;
                                     }
                                 }
                                 
                                 // Get body TODO
+                                /* use base64url and not plain base64
+http://stackoverflow.com/questions/24811008/gmail-api-decoding-messages-in-javascript
+https://en.wikipedia.org/wiki/Base64#Implementations_and_history
+http://stackoverflow.com/questions/5234581/base64url-decoding-via-javascript
+https://github.com/client9/stringencoders                                
+http://kjur.github.io/jsjws/tool_b64udec.html
+*/
                                 
                                 // Get images TODO
                                 

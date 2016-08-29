@@ -29,10 +29,12 @@
      *
      * Interface with the LinkedIn web API (client only).
      *
+     * App URL: https://www.linkedin.com/developer/apps/4244884/auth
+     *
      */
     
     // LinkedIn settings.
-    var API_KEY = '787q99ukiatyi8';
+    var API_KEY = '78o7wvj7cqaltb';
     
     // Load the SDK asynchronously
     window.inAsyncInit = function() {

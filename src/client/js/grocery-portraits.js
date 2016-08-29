@@ -162,13 +162,18 @@ var scrapedImages = [];
  */
 function loadImages(state) {
     scrapedImages = [];
-    $.each(state.images||[], function(i, v) {
-        scrapedImages[i] = new ImageFile(
-                fetchImage 
-                + "?url=" + encodeURIComponent(v) 
-                + "&provider=" + encodeURIComponent(state.provider)
-                + "&id=" + encodeURIComponent(state.id), 
-                imageLoaded);
+    $.each(state.images||[], function(i, url) {
+        if (url.match(/^data:/)) {
+            // Don't load data URIs through the fetchImage proxy since we already have the data as base64.
+            scrapedImages[i] = new ImageFile(url, imageLoaded);
+        } else {
+            scrapedImages[i] = new ImageFile(
+                    fetchImage 
+                    + "?url=" + encodeURIComponent(url) 
+                    + "&provider=" + encodeURIComponent(state.provider)
+                    + "&id=" + encodeURIComponent(state.id), 
+                    imageLoaded);
+        }
     });
 }
 

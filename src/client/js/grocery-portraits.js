@@ -200,7 +200,7 @@ function getFileName(index) {
         return templateName + ".pdf";
     }
     
-    var provider = $("#autofill-provider option:selected").text();
+    var provider = $("#source option:selected").text();
     var filename = provider + "-" + currentState.id + "-" + templateName;
     if (currentState.randomize) {
         filename += "-" + currentState.seed;
@@ -471,7 +471,7 @@ function scrapeRandom(provider) {
  *  Scrape random data from the currently selected provider.
  */
 function scrapeFields() {
-    var provider = providers[$("#autofill-provider").val()];
+    var provider = providers[$("#source").val()];
     scrapeRandom(provider);
 }
 
@@ -481,6 +481,54 @@ function scrapeFields() {
 function seedChanged() {
     updateState($.extend({}, currentState, {randomize: $("#randomize").prop('checked'), seed: $("#seed").val()}));
 }
+
+/**
+ * Update the generate button: disabled state, label etc.
+ */
+function updateAutofillButton() {
+    var provider = providers[$("#source").val()];
+    $("#generate, #authorize").prop('disabled', !(provider && provider.loaded));
+    if (provider && provider.authorized) {
+        $("#authorize").hide();
+        $("#generate").show();
+    } else {
+        $("#authorize").show();
+        $("#generate").hide();
+    }
+}
+
+/**
+ * Update interface depending on the providers' API load state.
+ */
+$(function() {
+    $("#source").change(updateAutofillButton);
+    updateAutofillButton();
+    $.each(providers, function(i, provider) {
+        // Init flags.
+        provider.loaded = false;
+        provider.authorized = false;
+        
+        // Disable option in drop-down.
+        var $option = $("#source option[value='"+provider.name+"']");
+        $option.prop('disabled', true);
+        // Update interface on 'loaded' event.
+        provider.addEventListener('loaded', function(e) {
+            console.log(provider.name, e.detail.message);
+            provider.loaded = true;
+            
+            // Enable option in drop-down.
+            $option.prop('disabled', false);
+            
+            updateAutofillButton();
+        });
+        
+        //TODO
+        provider.addEventListener('auth', function(e) {
+            console.log(provider.name, e.detail.message);
+            provider.authorized = e.detail.authorized;
+        });
+     });
+});
 
 
 /*
@@ -574,7 +622,7 @@ function updateState(state, replace) {
     // No need to update everything if hash didn't change.
     if (currentHash == hash) return;
     
-    $("#autofill-provider option[value='" + state.provider + "']").prop('selected', true);
+    $("#source option[value='" + state.provider + "']").prop('selected', true);
     $("#randomize").prop('disabled', false).prop('checked', state.randomize).closest('label').removeClass('disabled');
     $("#seed, #genSeed, #bookmarkSeed").prop('disabled', !state.randomize);
     $("#seed").val(state.seed);

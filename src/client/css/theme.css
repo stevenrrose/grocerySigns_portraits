@@ -498,3 +498,9 @@ input[type=number] {
 .icon-checkbox-group-on:before {
     content: "\e60a";
 }
+.icon-authorize:before {
+    content: "\e60b";
+}
+.icon-disclaimer:before {
+    content: "\e60c";
+}

@@ -10,13 +10,7 @@
      * Provider metadata (both server & client).
      *
      */
-    var provider = {
-        name: "Facebook",
-        
-        /** Allowed URL pattern. */
-        //TODO remove
-        urlPattern: /^$/
-    };
+    var provider = new Provider("Facebook", /*TODO remove*/ /^$/);
     providers[provider.name] = provider;
     
     if (typeof $ === 'undefined') {
@@ -39,7 +33,7 @@
     
     // Load the SDK asynchronously
     window.fbAsyncInit = function() {
-        console.log("Facebook API loaded");
+        console.debug("Facebook API loaded");
         FB.init({
             appId   : APP_ID,
             cookie  : true,
@@ -47,6 +41,7 @@
             xfbml   : false,
             version : 'v2.7'
         });
+        provider.dispatchEvent(new CustomEvent('loaded', {detail: {message: "API loaded"}}));
     };
     (function(d, s, id) {
         var js, fjs = d.getElementsByTagName(s)[0];
@@ -63,7 +58,7 @@
      */     
     var authorize = function(callback) {
         FB.getLoginStatus(function(response) {
-            if (response.status == "connected") {
+            if (response.status == 'connected') {
                 // Already connected, call the callback function directly.
                 callback(response);
             } else {
@@ -159,7 +154,7 @@
     provider.fetch = function(callback) {
         var info = {success: false};
         authorize(function(response) {
-            if (response.status == "connected") {
+            if (response.status == 'connected') {
                 // Get user posts & extract sentences.
                 info.sentences = [];
                 getUserPosts(minPosts, function(infoPosts) {
@@ -180,8 +175,8 @@
                 // Can't issue API calls.
                 console.error(response);
                 switch (response.status) {
-                    case "unknown":         info.error = "User not logged into Facebook";   break;
-                    case "not_authorized":  info.error = "Authorization denied";            break;
+                    case 'unknown':         info.error = "User not logged into Facebook";   break;
+                    case 'not_authorized':  info.error = "Authorization denied";            break;
                     default:                info.error = "Authorization error";             break;
                 }
                 callback(info);

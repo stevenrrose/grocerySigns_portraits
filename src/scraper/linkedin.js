@@ -10,13 +10,7 @@
      * Provider metadata (both server & client).
      *
      */
-    var provider = {
-        name: "LinkedIn",
-        
-        /** Allowed URL pattern. */
-        //TODO remove
-        urlPattern: /^$/
-    };
+    var provider = new Provider("LinkedIn", /*TODO remove*/ /^$/);
     providers[provider.name] = provider;
     
     if (typeof $ === 'undefined') {
@@ -38,7 +32,14 @@
     
     // Load the SDK asynchronously
     window.inAsyncInit = function() {
-        console.log("LinkedIn API loaded");
+        console.debug("LinkedIn API loaded");
+        
+        // Route IN's auth event through our own interface.
+        IN.Event.on(IN, 'auth', function() {
+            provider.dispatchEvent(new CustomEvent('auth', {detail: {message: "Authorization granted", authorized: true}}));
+        });
+        
+        provider.dispatchEvent(new CustomEvent('loaded', {detail: {message: "API loaded"}}));
     };
     (function(d, s, id) {
         var js, fjs = d.getElementsByTagName(s)[0];

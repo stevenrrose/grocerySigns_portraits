@@ -10,13 +10,7 @@
      * Provider metadata (both server & client).
      *
      */
-    var provider = {
-        name: "Gmail",
-        
-        /** Allowed URL pattern. */
-        //TODO remove
-        urlPattern: /^$/
-    };
+    var provider = new Provider("Gmail", /*TODO remove*/ /^$/);
     providers[provider.name] = provider;
     
     if (typeof $ === 'undefined') {
@@ -42,7 +36,8 @@
         gapi.client.load('plus', 'v1').then(
             function() {
                 gapi.client.load('gmail', 'v1').then(function() {
-                        console.log("Gmail API loaded");
+                        console.debug("Gmail API loaded");
+                        provider.dispatchEvent(new CustomEvent('loaded', {detail: {message: "API loaded"}}));
                     },
                     console.error
                 );
@@ -100,7 +95,7 @@
                         clearInterval(i);
                         // cancel has no effect when the promise is already resolved, e.g. by the success handler
                         // see http://docs.closure-library.googlecode.com/git/class_goog_Promise.html#goog.Promise.prototype.cancel
-                        setTimeout(function(){ promise.cancel("closed"); }, 100);
+                        setTimeout(function(){ promise.cancel('closed'); }, 100);
                     }
                 }, 100);
                 return win;
@@ -120,7 +115,7 @@
             },
             function(reason) { 
                 immediate = false;  // Error, force popup display next time.
-                callback({error: (reason && reason.message ? reason.message : "denied")}); 
+                callback({error: (reason && reason.message ? reason.message : 'denied')}); 
             }
         );
     };
@@ -339,8 +334,8 @@ http://kjur.github.io/jsjws/tool_b64udec.html
                 // Can't issue API calls.
                 console.error(response);
                 switch (response.error) {
-                    case "closed":
-                    case "denied":  info.error = "Authorization denied";    break;
+                    case 'closed':
+                    case 'denied':  info.error = "Authorization denied";    break;
                     default:        info.error = "Authorization error";     break;
                 }
                 callback(info);

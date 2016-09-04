@@ -26,6 +26,7 @@ function include(path) {
  * file, so define the variable as a property of this object.
  */
 global.providers = {};
+include('../scraper/provider.js');
 include('../scraper/facebook.js');
 include('../scraper/linkedin.js');
 include('../scraper/gmail.js');

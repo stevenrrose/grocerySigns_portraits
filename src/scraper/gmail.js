@@ -29,32 +29,50 @@
     
     // Gmail settings.
     var CLIENT_ID = "612453794408-nqvjmtgmsm0am8l9o2rahu36mlrg0qgd.apps.googleusercontent.com";
-    var SCOPES = 'profile,https://www.googleapis.com/auth/userinfo.profile,https://www.googleapis.com/auth/gmail.readonly'.split(',');
+    var SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
     
     // Load the SDK asynchronously
     window.gmAsyncInit = function() {
-        gapi.client.load('plus', 'v1').then(
-            function() {
-                gapi.client.load('gmail', 'v1').then(function() {
-                        console.debug("Gmail API loaded");
-                        provider.dispatchEvent(new CustomEvent('loaded', {detail: {message: "API loaded"}}));
-                    },
-                    console.error
-                );
-            },
-            console.error
-        )
+        gapi.load('client:auth2', function() {
+            //TODO batch load?
+            gapi.client.load('plus', 'v1').then(
+                function() {
+                    gapi.client.load('gmail', 'v1').then(
+                        function() {
+                            console.debug("Gmail API loaded");
+                            
+                            // Initialize GoogleAuth object.
+                            var auth2 = gapi.auth2.init({
+                                'client_id': CLIENT_ID,
+                                'scope': SCOPES,
+                            });
+                           
+                            // Route GoogleAuth signin status events through our own interface.
+                            auth2.isSignedIn.listen(function(status) {
+                                if (status) {
+                                    provider.dispatchEvent(new CustomEvent('auth', {detail: {message: "Signed in", authorized: true}}));
+                                } else {
+                                    provider.dispatchEvent(new CustomEvent('auth', {detail: {message: "Signed out", authorized: false}}));
+                                }
+                            });
+                            
+                            // Done! Send loaded event to all listeners.
+                            provider.dispatchEvent(new CustomEvent('loaded', {detail: {message: "API loaded"}}));
+                        },
+                        console.error
+                    );
+                },
+                console.error
+            );
+        });
     };
     (function(d, s, id) {
         var js, fjs = d.getElementsByTagName(s)[0];
         if (d.getElementById(id)) return;
         js = d.createElement(s); js.id = id;
-        js.src = "//apis.google.com/js/client.js?onload=gmAsyncInit";
+        js.src = "//apis.google.com/js/api.js?onload=gmAsyncInit";
         fjs.parentNode.insertBefore(js, fjs);
     }(document, 'script', 'gmail-jssdk'));
-    
-    /** Immediate mode flag for authorization. */
-    var immediate = false;
     
     /**
      * Get image data URI from base64url string.
@@ -70,7 +88,14 @@
      *  @parap callback     Function called at the end of the process.
      */     
     var authorize = function(callback) {
-        // Google gapi.auth.authorize() doesn't call our callback when the user closes the popup, and there is no built-in way to detect
+        var auth2 = gapi.auth2.getAuthInstance();
+        if (auth2.isSignedIn.get()) {
+            // Already signed in, call the callback function directly.
+            callback({});
+            return;
+        }
+            
+        // Google GoogleAuth.signin() doesn't call our callback when the user closes the popup, and there is no built-in way to detect
         // popup window close events, so we have to use the trick described here: 
         //
         //      https://github.com/google/google-api-javascript-client/issues/25#issuecomment-76695596
@@ -103,20 +128,9 @@
         })(window.open);
 
         // Issue call as usual.
-        promise = gapi.auth.authorize({
-            'client_id': CLIENT_ID,
-            'scope': SCOPES,
-            'immediate': immediate
-        }).then(
-            // FIXME immediate mode handling is probably suboptimal, we should only issue authorize calls upon failure
-            function(response) { 
-                immediate = true;   // Try immediate from now on.
-                callback(response);
-            },
-            function(reason) { 
-                immediate = false;  // Error, force popup display next time.
-                callback({error: (reason && reason.message ? reason.message : 'denied')}); 
-            }
+        promise = auth2.signIn().then(
+            callback, 
+            function(reason) { callback({error: (reason && reason.message ? reason.message : 'denied')}); }
         );
     };
     
@@ -245,9 +259,32 @@ http://kjur.github.io/jsjws/tool_b64udec.html
     
     /*
      *
-     * Data scraping (client only).
+     * Client interface.
      *
      */
+     
+    /**
+     * Request authorization from Gmail.
+     *
+     *  @param callback     Function called with content info.
+     */ 
+    provider.authorize = function(callback) {
+        var info = {};
+        authorize(function(response) {
+            if (response && !response.error) {
+                info.success = true;
+                info.message = "Authorization granted";
+            } else {
+                info.success = false;
+                switch (response.error) {
+                    case 'closed':
+                    case 'denied':  info.message = "Authorization denied";  break;
+                    default:        info.message = "Authorization error";   break;
+                }
+            }
+            callback(info);
+        });
+    };
      
     /**
      * Fetch & scrape Gmail content. We get the following info:

@@ -34,6 +34,7 @@
     // Load the SDK asynchronously
     window.fbAsyncInit = function() {
         console.debug("Facebook API loaded");
+        
         FB.init({
             appId   : APP_ID,
             cookie  : true,
@@ -41,6 +42,20 @@
             xfbml   : false,
             version : 'v2.7'
         });
+        
+        // Route FB's login status events through our own interface.
+        FB.Event.subscribe('auth.statusChange', function(response) {
+            var detail = {};
+            switch (response.status) {
+                case 'connected':       detail = {authorized: true,     message: "Authorization granted"}; break;
+                case 'not_authorized':  detail = {authorized: false,    message: "Not authorized"       }; break;
+                case 'unknown':
+                default:                detail = {authorized: false,    message: "Not connected"        }; break;
+            }
+            provider.dispatchEvent(new CustomEvent('auth', {detail: detail}));
+        });
+        
+        // Done! Send loaded event to all listeners.
         provider.dispatchEvent(new CustomEvent('loaded', {detail: {message: "API loaded"}}));
     };
     (function(d, s, id) {
@@ -134,12 +149,35 @@
     
     /*
      *
-     * Data scraping (client only).
+     * Client interface.
      *
      */
      
     /** Minimum number of posts to fetch. */
     var minPosts = 50;
+     
+    /**
+     * Request authorization from Facebook.
+     *
+     *  @param callback     Function called with content info.
+     */ 
+    provider.authorize = function(callback) {
+        var info = {};
+        authorize(function(response) {
+            if (response.status == 'connected') {
+                info.success = true;
+                info.message = "Authorization granted";
+            } else {
+                info.success = false;
+                switch (response.status) {
+                    case 'unknown':         info.message = "User not logged in";    break;
+                    case 'not_authorized':  info.message = "Authorization denied";  break;
+                    default:                info.message = "Authorization error";   break;
+                }
+            }
+            callback(info);
+        });
+    };
     
     /**
      * Fetch & scrape Facebook content. We get the following info:

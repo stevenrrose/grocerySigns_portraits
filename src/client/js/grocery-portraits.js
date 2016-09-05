@@ -313,9 +313,10 @@ function progress(step, nbSteps, stepLabel) {
  *  Enable/disable interface.
  *
  *  @param enabled  Whether to enable or disable interface.
+ *  @param modal    Modal dialog selector (defaults to '#progressDialog')
  */
-function enableInterface(enabled) {
-    $("#progressDialog").modal(enabled?'hide':'show');
+function enableInterface(enabled, modal) {
+    $(modal||"#progressDialog").modal(enabled?'hide':'show');
 }
 
 /**
@@ -472,19 +473,19 @@ function scrapeRandom(provider) {
  */
 function authorize() {
     // Disable interface elements.
-    enableInterface(false);
+    enableInterface(false, "#authorizeDialog");
 
     try {
         var provider = providers[$("#source").val()];
         provider.authorize(function(info) {
             (info.success ? console.log : console.error)(provider.name, info.message);
-            enableInterface(true);
+            enableInterface(true, "#authorizeDialog");
             displayMessage(info.success, "Authorization", provider.name + " " + info.message);
         });
     } catch (e) {
         console.error("exception", e);
         displayMessage(false, "Exception!", "Exception: " + e);
-        enableInterface(true);
+        enableInterface(true, "#authorizeDialog");
     }
 }
 

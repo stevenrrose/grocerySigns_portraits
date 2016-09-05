@@ -88,8 +88,12 @@
                         <div class="form-group col-sm-3">
                             <label class="control-label hidden-xs">&nbsp;</label>
                             <button type="button" id="authorize" class="btn btn-primary form-control">Authorize <span class="icon icon-authorize"></span></button>
-                            <button type="button" id="generate" class="btn btn-primary form-control" style="display: none" onclick="scrapeFields()">Generate <span class="icon icon-generate"></span></button>
+                            <button type="button" id="generate" class="btn btn-primary form-control" style="display: none">Generate <span class="icon icon-generate"></span></button>
                         </div>
+						<script>
+						$("#authorize").click(authorize);
+						$("#generate").click(scrapeFields);
+						</script>
                         
                         <!-- Random seed -->
                         <div class="form-group col-sm-3 col-half">

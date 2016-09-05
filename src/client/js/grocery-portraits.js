@@ -468,6 +468,27 @@ function scrapeRandom(provider) {
 }
 
 /**
+ *  Request authorization from the currently selected provider.
+ */
+function authorize() {
+    // Disable interface elements.
+    enableInterface(false);
+
+    try {
+        var provider = providers[$("#source").val()];
+        provider.authorize(function(info) {
+            (info.success ? console.log : console.error)(provider.name, info.message);
+            enableInterface(true);
+            displayMessage(info.success, "Authorization", provider.name + " " + info.message);
+        });
+    } catch (e) {
+        console.error("exception", e);
+        displayMessage(false, "Exception!", "Exception: " + e);
+        enableInterface(true);
+    }
+}
+
+/**
  *  Scrape random data from the currently selected provider.
  */
 function scrapeFields() {
@@ -485,7 +506,7 @@ function seedChanged() {
 /**
  * Update the generate button: disabled state, label etc.
  */
-function updateAutofillButton() {
+function updateGenerateButtons() {
     var provider = providers[$("#source").val()];
     $("#generate, #authorize").prop('disabled', !(provider && provider.loaded));
     if (provider && provider.authorized) {
@@ -501,8 +522,8 @@ function updateAutofillButton() {
  * Update interface depending on the providers' API load state.
  */
 $(function() {
-    $("#source").change(updateAutofillButton);
-    updateAutofillButton();
+    $("#source").change(updateGenerateButtons);
+    updateGenerateButtons();
     $.each(providers, function(i, provider) {
         // Init flags.
         provider.loaded = false;
@@ -519,13 +540,15 @@ $(function() {
             // Enable option in drop-down.
             $option.prop('disabled', false);
             
-            updateAutofillButton();
+            updateGenerateButtons();
         });
         
-        //TODO
+        // Listener for authorization event.
         provider.addEventListener('auth', function(e) {
             console.log(provider.name, e.detail.message);
             provider.authorized = e.detail.authorized;
+            
+            updateGenerateButtons();
         });
      });
 });

@@ -34,9 +34,12 @@
     window.inAsyncInit = function() {
         console.debug("LinkedIn API loaded");
         
-        // Route IN's auth event through our own interface.
+        // Route IN's auth & logout event through our own interface.
         IN.Event.on(IN, 'auth', function() {
             provider.dispatchEvent(new CustomEvent('auth', {detail: {message: "Authorization granted", authorized: true}}));
+        });
+        IN.Event.on(IN, 'logout', function() {
+            provider.dispatchEvent(new CustomEvent('auth', {detail: {message: "Logout", authorized: false}}));
         });
         
         provider.dispatchEvent(new CustomEvent('loaded', {detail: {message: "API loaded"}}));
@@ -106,6 +109,25 @@
      * Data scraping (client only).
      *
      */
+     
+    /**
+     * Request authorization from LinkedIn.
+     *
+     *  @param callback     Function called with content info.
+     */ 
+    provider.authorize = function(callback) {
+        var info = {};
+        authorize(function() {
+            if (IN.User.isAuthorized()) {
+                info.success = true;
+                info.message = "Authorization granted";
+            } else {
+                info.success = false;
+                info.message = "Authorization denied";
+            }
+            callback(info);
+        });
+    };
      
     /**
      * Fetch & scrape LinkedIn content. We get the following info:

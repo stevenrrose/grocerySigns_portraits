@@ -69,7 +69,7 @@
     /**
      * Ensure that the Facebook user is logged & the app is authenticated before issuing calls.
      *
-     *  @parap callback     Function called with auth result.
+     *  @param callback     Function called with auth result.
      */     
     var authorize = function(callback) {
         FB.getLoginStatus(function(response) {

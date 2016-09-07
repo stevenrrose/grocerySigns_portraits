@@ -95,7 +95,11 @@ if (typeof(exports) !== 'undefined') {
      *  @param image    Loaded ImageFile object.
      */
     function imageLoaded(image) {
-        console.log("Image loaded", image.url);
+        if (image.url.match('^data:')) {
+            console.log("Image loaded", "[data URI]");
+        } else {
+            console.log("Image loaded", image.url);
+        }
         scheduleRefresh();
     }
 }

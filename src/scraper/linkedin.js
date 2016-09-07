@@ -57,7 +57,7 @@
     /**
      * Ensure that the LinkedIn user is logged & the app is authenticated before issuing calls.
      *
-     *  @parap callback     Function called at the end of the process.
+     *  @param callback     Function called at the end of the process.
      */     
     var authorize = function(callback) {
         // LinkedIn IN.User.authorize() doesn't call our callback immediately upon failure (e.g. user closed the popup or refused to 

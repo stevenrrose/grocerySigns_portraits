@@ -75,7 +75,44 @@
     }(document, 'script', 'gmail-jssdk'));
     
     /**
+     * Get string from base64url UTF-8 string.
+     *
+     *  @param data     Base64url string.
+     *
+     *  @return the decoded string.
+     */
+    var base64urlToString = function(data) {
+        // Gmail API calls use the base64url encoding, so convert chars 62-63 from -_ to +/.
+        var s = atob(data.replace(/-/g,'+').replace(/_/g,'/'));
+        
+        // Convert from UTF-8 to Unicode.
+        return decodeURIComponent(escape(s));
+    }
+
+    /**
+     * Get main message body from string: 
+     * - ignore lines starting with '>'
+     * - join non-blank lines.
+     *
+     *  @param string   Raw message body string.
+     *
+     *  @return array of sentences.
+     */
+    var getMessageBody = function(string) {
+        // Ignore lines starting with '>'.
+        var lines = string.split('\n').filter(function(e) {return !e.match(/^>/);});
+        
+        // Join non-blank lines.
+        return lines.join('\n').split(/\n(?:\s*\n)+/);
+    }
+     
+    /**
      * Get image data URI from base64url string.
+     *
+     *  @param data     Base64url string.
+     *  @param type     MIME type.
+     *
+     *  @return the image data URI.
      */
     var getImageUri = function(data, type) {
         // Gmail API calls use the base64url encoding, so convert chars 62-63 from -_ to +/.
@@ -85,7 +122,7 @@
     /**
      * Ensure that the Gmail user is logged & the app is authenticated before issuing calls.
      *
-     *  @parap callback     Function called at the end of the process.
+     *  @param callback     Function called at the end of the process.
      */     
     var authorize = function(callback) {
         var auth2 = gapi.auth2.getAuthInstance();
@@ -163,7 +200,7 @@
                             if (result.error) {
                                 // Ignore.
                             } else {
-                                var message = {};
+                                var message = {body: []};
                                 
                                 // Get subject.
                                 var headers = result.payload.headers;
@@ -175,15 +212,11 @@
                                     }
                                 }
                                 
-                                // Get body TODO
-                                // TODO iterate over parts with text/plain or text/html
-                                /* use base64url and not plain base64
-http://stackoverflow.com/questions/24811008/gmail-api-decoding-messages-in-javascript
-https://en.wikipedia.org/wiki/Base64#Implementations_and_history
-http://stackoverflow.com/questions/5234581/base64url-decoding-via-javascript
-https://github.com/client9/stringencoders                                
-http://kjur.github.io/jsjws/tool_b64udec.html
-*/
+                                // Get body.
+                                var body = result.payload.body;
+                                if (body.size && body.data) {
+                                    message.body = message.body.concat(getMessageBody(base64urlToString(body.data)));
+                                }
                                 
                                 
                                 // Process parts.
@@ -191,13 +224,15 @@ http://kjur.github.io/jsjws/tool_b64udec.html
                                 if (parts) {
                                     for (var i = 0; i < parts.length; i++) {
                                         var part = parts[i];
-                                        switch (part.mimeType) {//TODO multipart/alternative
+                                        switch (part.mimeType) {
                                             case 'text/plain':
-                                                //TODO
+                                                if (part.body.size && part.body.data) {
+                                                    message.body = message.body.concat(getMessageBody(base64urlToString(part.body.data)));
+                                                }
                                                 break;
                                                 
                                             case 'text/html':
-                                                //TODO
+                                                // Ignore, assume that such messages have a text/plain version along with the text/html for interoperability.
                                                 break;
                                                 
                                             default:
@@ -290,8 +325,8 @@ http://kjur.github.io/jsjws/tool_b64udec.html
      * Fetch & scrape Gmail content. We get the following info:
      *
      *  - Subject line.
-     *  - Textual body TODO
-     *  - Embedded images TODO
+     *  - Textual body (not HTML).
+     *  - Embedded images.
      *
      *  @param callback     Function called with content info.
      */ 
@@ -340,9 +375,11 @@ http://kjur.github.io/jsjws/tool_b64udec.html
                                         info.sentences.push(message.subject);
                                     }
                                     if (message.body) {
-                                        var sentences = splitSentences(message.body);
-                                        for (var j = 0; j < sentences.length; j++) {
-                                            info.sentences.push(sentences[j]);
+                                        for (var j = 0; j < message.body.length; j++) {
+                                            var sentences = splitSentences(message.body[j]);
+                                            for (var k = 0; k < sentences.length; k++) {
+                                                info.sentences.push(sentences[k]);
+                                            }
                                         }
                                     }
                                     if (message.images) {
@@ -351,7 +388,7 @@ http://kjur.github.io/jsjws/tool_b64udec.html
                                         }
                                     }
                                 }
-                        
+                                
                                 // Done!
                                 info.success = true;
                                 callback(info);

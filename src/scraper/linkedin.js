@@ -138,9 +138,10 @@
      *  - Locations, positions (current and past)
      *  - Profile images.
      *
+     *  @param options      Options (none defined for now).
      *  @param callback     Function called with content info.
      */ 
-    provider.fetch = function(callback) {
+    provider.fetch = function(options, callback) {
         var info = {};
         authorize(function() {
             if (IN.User.isAuthorized()) {

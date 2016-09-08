@@ -11,6 +11,7 @@
      *
      */
     var provider = new Provider("Gmail", /*TODO remove*/ /^$/);
+    provider.hasDate = true;
     providers[provider.name] = provider;
     
     if (typeof $ === 'undefined') {
@@ -171,15 +172,49 @@
         );
     };
     
+    /** Maximum number of messages to fetch. */
+    var maxMessages = 100;
+    
     /**
      * Get messages from Gmail.
      *
+     *  @param options      Options:
+     *                      - dateRange: Date range for messages, takes any of the following values:
+     *                          * undefined or empty: no range
+     *                          * 1d: past day
+     *                          * 1w: past week
+     *                          * 1m: past month
+     *                          * 1y: past year
      *  @param callback     Function called with results.
+     *
+     *  @see provider.fetch()
      */
-    var getMessages = function(callback) {
-        gapi.client.gmail.users.messages.list({userId: 'me'}).then(
+    var getMessages = function(options, callback) {
+        // Parameters passed to messages.list.
+        var params = {userId: 'me', maxResults: maxMessages};
+        
+        // For date range we use the search feature:
+        //  https://developers.google.com/gmail/api/guides/filtering
+        //  https://support.google.com/mail/answer/7190?hl=en
+        switch (options.dateRange) {
+            case '1d':    params.q = 'newer_than:1d'; break;
+            case '1w':    params.q = 'newer_than:7d'; break;
+            case '1m':    params.q = 'newer_than:1m'; break;
+            case '1y':    params.q = 'newer_than:1y'; break;
+        }
+
+        // Returned results.
+        var info = {messages: []};
+        
+        // Get message IDs.
+        gapi.client.gmail.users.messages.list(params).then(
             function(response) {
-                // Get all messages in batch.
+                if (!response.result.messages) {
+                    // No message, stop there.
+                    callback(info);
+                }
+                
+                // Get all message infos in batch.
                 var messages = response.result.messages;
                 var batch = gapi.client.newBatch();
                 for (var i = 0; i < messages.length; i++) {
@@ -188,8 +223,6 @@
                 }
                 batch.then(
                     function(response) {
-                        var info = {messages: []};
-                        
                         // Batch for image attachments.
                         var hasImages = false;
                         var batchImages = gapi.client.newBatch();
@@ -251,6 +284,7 @@
                         }
                         
                         if (hasImages) {
+                            // Execute batch first.
                             batchImages.then(
                                 function(response) {
                                     for (var id in response.result) {
@@ -274,7 +308,7 @@
                                 }
                             );
                         } else {
-                             // Done!
+                            // Done!
                             callback(info);
                         }
                     },
@@ -328,9 +362,16 @@
      *  - Textual body (not HTML).
      *  - Embedded images.
      *
+     *  @param options      Options:
+     *                      - dateRange: Date range for messages, takes any of the following values:
+     *                          * undefined or empty: no range
+     *                          * 1d: past day
+     *                          * 1w: past week
+     *                          * 1m: past month
+     *                          * 1y: past year
      *  @param callback     Function called with content info.
      */ 
-    provider.fetch = function(callback) {
+    provider.fetch = function(options, callback) {
         var info = {success: false};
         authorize(function(response) {
             if (response && !response.error) {
@@ -367,7 +408,7 @@
                         info.sentences.push(profile.messagesTotal.toString());
                         
                         // Message subjects/body/images.
-                        getMessages(function(infoMessages) {
+                        getMessages(options, function(infoMessages) {
                             if (infoMessages.messages) {
                                 for (var i = 0; i < infoMessages.messages.length; i++) {
                                     var message = infoMessages.messages[i];

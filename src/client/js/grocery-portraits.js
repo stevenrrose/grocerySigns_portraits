@@ -441,8 +441,9 @@ function processImages(info) {
  *  Scrape random content and call fetchCallback() upon result.
  *  
  *  @param provider     Provider to scrape.
+ *  @param options      Options passed to provider.fetch().
  */
-function scrapeRandom(provider) {
+function scrapeRandom(provider, options) {
     // Disable interface elements.
     enableInterface(false);
     
@@ -460,7 +461,7 @@ function scrapeRandom(provider) {
     });
 
     try {
-        provider.fetch(function(info) {fetchCallback(provider, info);});
+        provider.fetch(options, function(info) {fetchCallback(provider, info);});
     } catch (e) {
         console.log("exception", e);
         displayMessage(false, "Exception!", "Exception: " + e);
@@ -494,7 +495,8 @@ function authorize() {
  */
 function scrapeFields() {
     var provider = providers[$("#source").val()];
-    scrapeRandom(provider);
+    var options = {dateRange: $("#date").val()};
+    scrapeRandom(provider, options);
 }
 
 /**
@@ -505,17 +507,24 @@ function seedChanged() {
 }
 
 /**
- * Update the generate button: disabled state, label etc.
+ * Update interface when provider changes: authorize/generate, date range etc.
  */
-function updateGenerateButtons() {
+function providerChanged() {
     var provider = providers[$("#source").val()];
-    $("#generate, #authorize").prop('disabled', !(provider && provider.loaded));
-    if (provider && provider.authorized) {
-        $("#authorize").hide();
-        $("#generate").show();
+    if (provider && provider.loaded) {
+        if (provider.authorized) {
+            $("#authorize").hide().prop('disabled', true);
+            $("#generate").show().prop('disabled', false);
+        } else {
+            $("#authorize").show().prop('disabled', false);
+            $("#generate").hide().prop('disabled', true);
+        }
+        $("#date").prop('disabled', !provider.hasDate);
     } else {
+        $("#generate, #authorize").prop('disabled', true);
         $("#authorize").show();
         $("#generate").hide();
+        $("#date").prop('disabled', true);
     }
 }
 
@@ -523,8 +532,8 @@ function updateGenerateButtons() {
  * Update interface depending on the providers' API load state.
  */
 $(function() {
-    $("#source").change(updateGenerateButtons);
-    updateGenerateButtons();
+    $("#source").change(providerChanged);
+    providerChanged();
     $.each(providers, function(i, provider) {
         // Init flags.
         provider.loaded = false;
@@ -541,7 +550,7 @@ $(function() {
             // Enable option in drop-down.
             $option.prop('disabled', false);
             
-            updateGenerateButtons();
+            providerChanged();
         });
         
         // Listener for authorization event.
@@ -549,7 +558,7 @@ $(function() {
             console.log(provider.name, e.detail.message);
             provider.authorized = e.detail.authorized;
             
-            updateGenerateButtons();
+            providerChanged();
         });
      });
 });

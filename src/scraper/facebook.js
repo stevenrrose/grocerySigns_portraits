@@ -11,6 +11,7 @@
      *
      */
     var provider = new Provider("Facebook", /*TODO remove*/ /^$/);
+    provider.hasDate = true;
     providers[provider.name] = provider;
     
     if (typeof $ === 'undefined') {
@@ -95,14 +96,26 @@
     var getUserPhotos = function(callback) {
         throw "TODO";
     };
+     
+    /** Minimum number of posts to fetch. */
+    var minPosts = 50;
     
     /**
      * Get posts from Facebook user timeline.
      *
-     *  @param min          Minimum number of posts to get.
+     *  @param options      Options object:
+     *                      - dateRange: Date range for messages, takes any of the following values:
+     *                          * undefined or empty: no range
+     *                          * 1d: past day
+     *                          * 1w: past week
+     *                          * 1m: past month
+     *                          * 1y: past year
      *  @param callback     Function called with results.
+     *
+     *  @see provider.fetch()
      */
-    var getUserPosts = function(min, callback) {
+    //TODO implement date range
+    var getUserPosts = function(options, callback) {
         // Get data from current result page, and continue to next page if needed.
         var extractPage = function(response, info, callback) {
             // Extract nonempty messages.
@@ -153,9 +166,6 @@
      *
      */
      
-    /** Minimum number of posts to fetch. */
-    var minPosts = 50;
-     
     /**
      * Request authorization from Facebook.
      *
@@ -187,15 +197,22 @@
      *  - Photos TODO
      *  - Posts
      *
+     *  @param options      Options object:
+     *                      - dateRange: Date range for messages, takes any of the following values:
+     *                          * undefined or empty: no range
+     *                          * 1d: past day
+     *                          * 1w: past week
+     *                          * 1m: past month
+     *                          * 1y: past year
      *  @param callback     Function called with content info.
      */ 
-    provider.fetch = function(callback) {
+    provider.fetch = function(options, callback) {
         var info = {success: false};
         authorize(function(response) {
             if (response.status == 'connected') {
                 // Get user posts & extract sentences.
                 info.sentences = [];
-                getUserPosts(minPosts, function(infoPosts) {
+                getUserPosts(options, function(infoPosts) {
                     if (infoPosts.posts) {
                         for (var i = 0; i < infoPosts.posts.length; i++) {
                             var sentences = splitSentences(infoPosts.posts[i]);

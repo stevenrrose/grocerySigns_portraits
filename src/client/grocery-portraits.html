@@ -65,7 +65,7 @@
     </script>    
     <div class="container-fluid">
         <div class="page-header">
-            <h1><sup><a href="http://www.destijlife.com/">2</a> </sup>Grocery Portraits</h1>
+            <h1><sup><a href="http://www.destijlife.com/">3</a> </sup>Grocery Portraits</h1>
         </div>
         
         <!-- Parameters -->
@@ -76,28 +76,29 @@
                     
                         <!-- Source -->
                         <div class="form-group col-sm-3">
-                            <label class="control-label">Source</label>
+                            <label for="source" class="control-label">Source</label>
                             <select id="source" class="form-control">
                                 {% for provider in providers %}
                                 <option value="{{provider}}"{% if active_provider == provider %} selected{% endif %}>{{provider}}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        
-                        <!-- Generate button -->
+						
+						<!-- Date range -->
                         <div class="form-group col-sm-3">
-                            <label class="control-label hidden-xs">&nbsp;</label>
-                            <button type="button" id="authorize" class="btn btn-primary form-control">Authorize <span class="icon icon-authorize"></span></button>
-                            <button type="button" id="generate" class="btn btn-primary form-control" style="display: none">Generate <span class="icon icon-generate"></span></button>
+                            <label for="date" class="control-label">Date Range</label>
+                            <select id="date" class="form-control">
+                                <option value="" selected>All time</option>
+                                <option value="1d">Past day</option>
+                                <option value="1w">Past week</option>
+                                <option value="1m">Past month</option>
+                                <option value="1y">Past year</option>
+                            </select>
                         </div>
-						<script>
-						$("#authorize").click(authorize);
-						$("#generate").click(scrapeFields);
-						</script>
                         
                         <!-- Random seed -->
                         <div class="form-group col-sm-3 col-half">
-                            <label for="seed" class="control-label">Pull No.</label>
+                            <label for="seed" class="control-label">Sequence No.</label>
                             <input type="number" class="form-control" id="seed" placeholder="Seed" min="0" max="999999" disabled {% if active_state.randomize %}value="{{active_state.seed}}"{% endif %}>
                         </div>
                         <div class="form-group col-sm-3 col-half">
@@ -108,9 +109,24 @@
                             <label class="control-label hidden-xs">&nbsp;</label>
                             <label class="btn btn-default form-control disabled"><input type="checkbox" id="randomize" disabled {% if active_state.randomize %}checked{% endif %}/><span> Rdm.</span></label>
                         </div>
+						
+						<!-- Global save button -->
                         <div class="form-group col-sm-3 col-half">
                             <label class="control-label hidden-xs">&nbsp;</label>
                             <button type="button" id="bookmarkSeed" class="btn btn-default btn-round form-control" disabled>Save <span class="glyphicon glyphicon-star-empty"></span></button>
+                        </div>
+                        
+                        <!-- Authorize/Generate button -->
+                        <div class="form-group col-sm-3">
+                            <label class="control-label hidden-xs">&nbsp;</label>
+                            <button type="button" id="authorize" class="btn btn-primary form-control" disabled>Authorize <span class="icon icon-authorize"></span></button>
+                            <button type="button" id="generate" class="btn btn-primary form-control" disabled style="display: none">Generate <span class="icon icon-generate"></span></button>
+                        </div>
+						
+						<!-- Disclaimer link -->
+                        <div class="form-group col-sm-3">
+                            <label class="control-label hidden-xs">&nbsp;</label>
+                            <button class="btn btn-default btn-round form-control" disabled>Disclaimer <span class="icon icon-disclaimer"></span></button>
                         </div>
                         
                         <script>
@@ -122,6 +138,8 @@
                         $("#bookmarkSeed").click(function() {
                             bookmarkSeed();
                         });
+						$("#authorize").click(authorize);
+						$("#generate").click(scrapeFields);
                         </script>
                     </div>
                 </form>

@@ -97,8 +97,11 @@
         throw "TODO";
     };
      
-    /** Minimum number of posts to fetch. */
-    var minPosts = 50;
+    /** Minimum number of non-empty posts to return. */
+    var minPosts = 100;
+     
+    /** Maximum number of posts to fetch at once. */
+    var maxPosts = 250;
     
     /**
      * Get posts from Facebook user timeline.
@@ -116,6 +119,22 @@
      */
     //TODO implement date range
     var getUserPosts = function(options, callback) {
+        // Parameters passed to /me/posts.
+        var params = "?limit=" + maxPosts;
+        
+        // For date range we use time-based pagination:
+        //  https://developers.facebook.com/docs/graph-api/using-graph-api#time
+        var d = new Date();
+        switch (options.dateRange) {
+            case '1d':    d.setDate(d.getDate()-1);         break;
+            case '1w':    d.setDate(d.getDate()-7);         break;
+            case '1m':    d.setMonth(d.getMonth()-1);       break;
+            case '1y':    d.setFullYear(d.getFullYear()-1); break;
+        }
+        if (['1d', '1w', '1m', '1y'].indexOf(options.dateRange) >= 0) {
+            params += "&since=" + Math.floor(d.getTime()/*ms*/ / 1000);
+        }
+        
         // Get data from current result page, and continue to next page if needed.
         var extractPage = function(response, info, callback) {
             // Extract nonempty messages.
@@ -143,7 +162,7 @@
         };
         
         // Issue main request.
-        FB.api('/me/posts', {fields: 'message'}, function(response) {
+        FB.api('/me/posts' + params, {fields: 'message'}, function(response) {
             var info = {};
             if (response.error) {
                 // Pass error to callback.

@@ -17,6 +17,9 @@
     /** Authentication cookie name. */
     var authCookie = 'twitter_auth';
     
+    /** User data cookie name. */
+    var userCookie = 'twitter_user';
+    
     if (typeof(exports) !== 'undefined') {
         // Running on server.
         var swig = require('swig');
@@ -46,7 +49,6 @@
         var authError = function(res, message, status) {
             console.log(message);
             res.clearCookie(authCookie);
-            res.clearCookie()
             var code;
             switch (status) {
                 case 'not_authorized':  code = 401; break;
@@ -62,18 +64,18 @@
          */
         provider.initRoutes = function(app) {
             /**
-             * /twitter_auth
+             * /twitter/auth
              *
              * Redirect to the Twitter authentication page.
              */
-            app.get('/twitter_auth', function(req, res) {
+            app.get('/twitter/auth', function(req, res) {
                 // Step 1: Get request token.
                 twitter.getRequestToken(function(error, requestToken, requestTokenSecret, results){
                     if (error) {
                         return authError(res, "Error getting Twitter OAuth request token : " + error, 'error');
                     }
                     
-                    // Store requestToken and requestTokenSecret in cookie. TODO encrypt?
+                    // Store requestToken and requestTokenSecret in signed cookie. TODO encrypt?
                     var cookie = JSON.stringify({requestToken: requestToken, requestTokenSecret: requestTokenSecret});
                     res.cookie(authCookie, cookie, {signed: true});
                     
@@ -83,11 +85,11 @@
             });
             
             /**
-             * /twitter_callback
+             * /twitter/callback
              *
              * Callback for the authentication window.
              */
-            app.get('/twitter_callback', function(req, res) {
+            app.get('/twitter/callback', function(req, res) {
                 // Generic error handler.
                 if (req.query.denied) {
                     return authError(res, "Twitter OAuth Access denied", 'not_authorized');
@@ -118,38 +120,42 @@
                             return authError(res, "Error verifying Twitter credentials : " + error, 'not_authorized');
                         }
                         
-                        // Store accessToken and accessTokenSecret in cookie. TODO encrypt?
+                        // Success!
+                        console.log("Twitter user authenticated", data["screen_name"]);
+                        
+                        // Store accessToken and accessTokenSecret in signed cookie. TODO encrypt?
                         var cookie = JSON.stringify({accessToken: accessToken, accessTokenSecret: accessTokenSecret});
                         res.cookie(authCookie, cookie, {signed: true});
                         
-                        // Success!
-                        console.log("Twitter user authenticated", data["screen_name"]);
+                        // Store user data in plain cookie.
+                        res.cookie(userCookie, JSON.stringify(data));
+                        
                         return res.send(callbackPageTpl({status: 'connected'}));
                     });
                 });
+            });
                 
-                /**
-                 * /twitter_getinfo?dateRange={dateRange}
-                 *
-                 * Get the following infos:
-                 *
-                 *  - Profile bio TODO
-                 *  - Tweets TODO
-                 *  - Photos TODO
-                 *
-                 *  @param dateRange    Date range for messages, takes any of the following values:
-                 *                          - undefined or empty: no range
-                 *                          - 1d: past day
-                 *                          - 1w: past week
-                 *                          - 1m: past month
-                 *                          - 1y: past year
-                 */
-                app.get('/twitter_getinfo', function(req, res) {
-                    var dateRange = req.query.dateRange;
-                    console.log(dateRange);
-                    //TODO
-                    return res.status(400).end("TODO");
-                });
+            /**
+             * /twitter/getinfo?dateRange={dateRange}
+             *
+             * Get the following infos:
+             *
+             *  - Tweets TODO
+             *  - Photos TODO
+             *
+             *  @param dateRange    Date range for messages, takes any of the following values:
+             *                          - undefined or empty: no range
+             *                          - 1d: past day
+             *                          - 1w: past week
+             *                          - 1m: past month
+             *                          - 1y: past year
+             */
+            app.get('/twitter/getinfo', function(req, res) {
+                var dateRange = req.query.dateRange;
+                console.log(dateRange);
+                //TODO
+                // return authError(res, "TODO", 400);
+                return res.status(200).end("{}");
             });
         };
         return;
@@ -231,7 +237,7 @@
             "toolbar=no",
             "menubar=no",
             "scrollbars=yes"];
-        var win = window.open('twitter_auth', 'twitter_auth', features.join(","));
+        var win = window.open('twitter/auth', 'twitter_auth', features.join(","));
         
         // Monitor close event.
         var i = setInterval(function() {
@@ -279,7 +285,7 @@
     /**
      * Fetch & scrape Twitter content. We get the following info:
      *
-     *  - Profile bio TODO
+     *  - Profile info.
      *  - Tweets TODO
      *  - Photos TODO
      *
@@ -296,10 +302,52 @@
         var info = {success: false};
         authorize(function(status) {
             if (status == 'connected') {
-                //TODO
-                info.success = false;
-                info.error = "TODO";
-                callback(info);
+                // Get basic user data from cookie.
+                var userData = Cookies.getJSON(userCookie);
+                
+                // Issue Ajax call. Error conditions are handled by the global error handler.
+                $.getJSON('twitter/getinfo', options)
+                .done(function(data, textStatus, jqXHR) {
+                    info.success = true;
+                    
+                    // Main info.
+                    info.id = userData.id;
+                    info.url = "https://twitter.com/" + userData.screen_name;
+                    info.label = userData.name;
+                    
+                    // Sentences.
+                    info.sentences = [];
+                    
+                    // - Title = name.
+                    info.sentences.push(userData.name);
+                    
+                    // - Subtitle = location.
+                    info.sentences.push(userData.location||'');
+                    
+                    // - Price = number of tweets.
+                    info.sentences.push(userData.statuses_count.toString());
+                    
+                    // - Description.
+                    if (userData.description) {
+                        var sentences = splitSentences(userData.description);
+                        for (var j = 0; j < sentences.length; j++) {
+                            info.sentences.push(sentences[j]);
+                        }
+                    }
+                    
+                    // Profile images.
+                    if (userData.profile_image_url_https) {
+                        info.images = [userData.profile_image_url_https];
+                    }
+                    
+                    callback(info);
+                })
+                .always(function() {
+                    if (!isAuthorized()) {
+                        // Lost authorization.
+                        provider.dispatchEvent(new CustomEvent('auth', {detail: {message: "Not connected", authorized: false}}));
+                    }
+                });
             } else {
                 // Can't issue API calls.
                 switch (status) {

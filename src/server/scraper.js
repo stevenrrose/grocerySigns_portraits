@@ -2,34 +2,21 @@
  * Umbrella module for client-side scraping JS files.
  */
 
-// Modules for JS file loading.
-var vm = require('vm');
-var fs = require('fs');
-
-/**
- * include
- * 
- * Execute the given JS file in the current context.
- * 
- * @param {string} path file to include
+/*
+ * Browser code defines global variables & functions in a global script element.
+ * In Node.js the *global* object maps to the global context in each required 
+ * file, so define the needed variables as a property of this object.
  */
-function include(path) {
-    var code = fs.readFileSync(path, 'utf-8');
-    vm.runInThisContext(code, path);
-}
-
-/**
- * global.providers
- * 
- * Browser code defines the *providers* variable in a global script element.
- * In Node.js the *global* object maps to the global context in each included 
- * file, so define the variable as a property of this object.
- */
+global.Provider = require('../scraper/provider.js');
 global.providers = {};
-include('../scraper/provider.js');
-include('../scraper/facebook.js');
-include('../scraper/linkedin.js');
-include('../scraper/gmail.js');
+
+/*
+ * These files will add their own Provider-based objects to the global *providers* array.
+ */
+require('../scraper/facebook.js');
+require('../scraper/linkedin.js');
+require('../scraper/gmail.js');
+require('../scraper/twitter.js');
 
 // Exports the above *providers* variable.
-exports.providers = providers;
+exports.providers = global.providers;

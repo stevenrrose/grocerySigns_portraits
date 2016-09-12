@@ -41,3 +41,7 @@ Provider.prototype.dispatchEvent = function(event) {
         stack[i].call(this, event);
     }
 };
+
+if (typeof(exports) !== 'undefined') {
+    module.exports = Provider;
+}

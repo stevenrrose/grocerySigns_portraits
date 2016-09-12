@@ -14,7 +14,7 @@
     provider.hasDate = true;
     providers[provider.name] = provider;
     
-    if (typeof $ === 'undefined') {
+    if (typeof(exports) !== 'undefined') {
         // Running on server, only metadata is needed.
         return;
     }
@@ -32,7 +32,7 @@
     var APP_ID = '112125819241682';
     var APP_SCOPES = 'public_profile,user_about_me,user_birthday,user_education_history,user_hometown,user_location,user_photos,user_posts,user_work_history,user_religion_politics';
     
-    // Load the SDK asynchronously
+    // Load the SDK asynchronously.
     window.fbAsyncInit = function() {
         console.debug("Facebook API loaded");
         

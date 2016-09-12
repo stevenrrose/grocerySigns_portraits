@@ -14,7 +14,7 @@
     provider.hasDate = true;
     providers[provider.name] = provider;
     
-    if (typeof $ === 'undefined') {
+    if (typeof(exports) !== 'undefined') {
         // Running on server, only metadata is needed.
         return;
     }
@@ -32,7 +32,7 @@
     var CLIENT_ID = "612453794408-nqvjmtgmsm0am8l9o2rahu36mlrg0qgd.apps.googleusercontent.com";
     var SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
     
-    // Load the SDK asynchronously
+    // Load the SDK asynchronously.
     window.gmAsyncInit = function() {
         gapi.load('client:auth2', function() {
             //TODO batch load?

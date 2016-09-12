@@ -13,7 +13,7 @@
     var provider = new Provider("LinkedIn", /*TODO remove*/ /^$/);
     providers[provider.name] = provider;
     
-    if (typeof $ === 'undefined') {
+    if (typeof(exports) !== 'undefined') {
         // Running on server, only metadata is needed.
         return;
     }
@@ -30,7 +30,7 @@
     // LinkedIn settings.
     var API_KEY = '78o7wvj7cqaltb';
     
-    // Load the SDK asynchronously
+    // Load the SDK asynchronously.
     window.inAsyncInit = function() {
         console.debug("LinkedIn API loaded");
         

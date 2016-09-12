@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Twitter authorization status</title>
+<script type="text/javascript">
+window.opener.twAuthCallback('{{status}}');
+window.close();
+</script>
+</head>
+<body>
+<h1>Twitter authorization status: {{status}}</h1>
+<p>Please close this window.</p>
+</body>
+</html>

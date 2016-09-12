@@ -3,6 +3,7 @@ process.chdir(__dirname);
 var request = require('request');
 var express = require('express');
 var bodyParser = require('body-parser');
+var cookieParser = require('cookie-parser');
 var swig = require('swig');
 
 var scraper = require('./scraper.js');
@@ -32,6 +33,16 @@ var providers = Object.keys(scraper.providers);
  */
 var app = express();
 app.use(bodyParser.json());
+var cookiesOptions = require('../config/cookies.json');
+app.use(cookieParser(cookiesOptions.secret));
+
+// Initialize provider-specific routes.
+for (var id in scraper.providers) {
+    var provider = scraper.providers[id];
+    if (provider.initRoutes) {
+        provider.initRoutes(app);
+    }
+}
 
 /*
  * Static routes.

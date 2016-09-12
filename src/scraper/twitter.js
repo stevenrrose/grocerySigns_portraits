@@ -76,8 +76,8 @@
                     }
                     
                     // Store requestToken and requestTokenSecret in signed cookie. TODO encrypt?
-                    var cookie = JSON.stringify({requestToken: requestToken, requestTokenSecret: requestTokenSecret});
-                    res.cookie(authCookie, cookie, {signed: true});
+                    var requestData = {requestToken: requestToken, requestTokenSecret: requestTokenSecret};
+                    res.cookie(authCookie, JSON.stringify(requestData), {signed: true});
                     
                     // Redirect to auth window.
                     res.redirect(twitter.getAuthUrl(requestToken));
@@ -96,20 +96,20 @@
                 }
                 
                 // Get requestToken & requestTokenSecret from cookie.
-                var cookie;
+                var requestData;
                 try {
-                    cookie = JSON.parse(req.signedCookies[authCookie]);
+                    requestData = JSON.parse(req.signedCookies[authCookie]);
                 } catch (e) {
                     // Missing or misformed cookie.
                     return authError(res, "Missing cookie", 'error');
                 }
-                if (cookie.requestToken != req.query.oauth_token) {
+                if (requestData.requestToken != req.query.oauth_token) {
                     // Bad token.
                     return authError(res, "Bad token", 'not_authorized');
                 }
 
                 // Step 2: Get access token.
-                twitter.getAccessToken(cookie.requestToken, cookie.requestTokenSecret, req.query.oauth_verifier, function(error, accessToken, accessTokenSecret, results) {
+                twitter.getAccessToken(requestData.requestToken, requestData.requestTokenSecret, req.query.oauth_verifier, function(error, accessToken, accessTokenSecret, results) {
                     if (error) {
                         return authError(res, "Error getting Twitter OAuth access token : " + error, 'error');
                     }
@@ -124,8 +124,8 @@
                         console.log("Twitter user authenticated", data["screen_name"]);
                         
                         // Store accessToken and accessTokenSecret in signed cookie. TODO encrypt?
-                        var cookie = JSON.stringify({accessToken: accessToken, accessTokenSecret: accessTokenSecret});
-                        res.cookie(authCookie, cookie, {signed: true});
+                        var accessData = {accessToken: accessToken, accessTokenSecret: accessTokenSecret};
+                        res.cookie(authCookie, JSON.stringify(accessData), {signed: true});
                         
                         // Store user data in plain cookie.
                         res.cookie(userCookie, JSON.stringify(data));
@@ -136,12 +136,9 @@
             });
                 
             /**
-             * /twitter/getinfo?dateRange={dateRange}
+             * /twitter/statuses?dateRange={dateRange}
              *
-             * Get the following infos:
-             *
-             *  - Tweets TODO
-             *  - Photos TODO
+             * Get statuses for the current user.
              *
              *  @param dateRange    Date range for messages, takes any of the following values:
              *                          - undefined or empty: no range
@@ -150,12 +147,25 @@
              *                          - 1m: past month
              *                          - 1y: past year
              */
-            app.get('/twitter/getinfo', function(req, res) {
+            app.get('/twitter/statuses', function(req, res) {
                 var dateRange = req.query.dateRange;
                 console.log(dateRange);
-                //TODO
-                // return authError(res, "TODO", 400);
-                return res.status(200).end("{}");
+ 
+                // Get accessToken, accessTokenSecret & user data from cookie.
+                var accessData, userData;
+                try {
+                    accessData = JSON.parse(req.signedCookies[authCookie]);
+                    userData = JSON.parse(req.cookies[userCookie]);
+                } catch (e) {
+                    // Missing or misformed cookie.
+                    return authError(res, "Missing cookie", 'error');
+                }
+                
+                // TODO dateRange handling
+                twitter.getTimeline('user', {screen_name: userData.screen_name, count: 200, trim_user: true, exclude_replies: true, include_rts: false}, accessData.accessToken, accessData.accessTokenSecret, function(error, data, response) {
+                    //TODO error handling
+                    return res.send(data);
+                });
             });
         };
         return;
@@ -302,11 +312,11 @@
         var info = {success: false};
         authorize(function(status) {
             if (status == 'connected') {
-                // Get basic user data from cookie.
+                // Get user data from cookie.
                 var userData = Cookies.getJSON(userCookie);
                 
                 // Issue Ajax call. Error conditions are handled by the global error handler.
-                $.getJSON('twitter/getinfo', options)
+                $.getJSON('twitter/statuses', options)
                 .done(function(data, textStatus, jqXHR) {
                     info.success = true;
                     
@@ -335,11 +345,26 @@
                         }
                     }
                     
-                    // Profile images.
-                    if (userData.profile_image_url_https) {
-                        info.images = [userData.profile_image_url_https];
+                    // - Status texts.
+                    for (var i = 0; i < data.length; i++) {
+                        var status = data[i];
+                        var sentences = splitSentences(status.text);
+                        for (var j = 0; j < sentences.length; j++) {
+                            info.sentences.push(sentences[j]);
+                        }
                     }
                     
+                    // Images.
+                    info.images = [];
+                    
+                    // - Profile images.
+                    if (userData.profile_image_url_https) {
+                        info.images.push(userData.profile_image_url_https);
+                    }
+                    
+                    // - Status images TODO.
+                    
+                    // Done!
                     callback(info);
                 })
                 .always(function() {

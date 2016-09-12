@@ -133,7 +133,7 @@
     /**
      * Fetch & scrape LinkedIn content. We get the following info:
      *
-     *  - Name, headline title, summary, .
+     *  - Name, headline title, summary.
      *  - Number of connections.
      *  - Locations, positions (current and past)
      *  - Profile images.

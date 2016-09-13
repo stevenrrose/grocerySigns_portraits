@@ -117,22 +117,22 @@
      *
      *  @see provider.fetch()
      */
-    //TODO implement date range
     var getUserPosts = function(options, callback) {
         // Parameters passed to /me/posts.
         var params = "?limit=" + maxPosts;
         
         // For date range we use time-based pagination:
         //  https://developers.facebook.com/docs/graph-api/using-graph-api#time
-        var d = new Date();
+        var since = new Date();
         switch (options.dateRange) {
-            case '1d':    d.setDate(d.getDate()-1);         break;
-            case '1w':    d.setDate(d.getDate()-7);         break;
-            case '1m':    d.setMonth(d.getMonth()-1);       break;
-            case '1y':    d.setFullYear(d.getFullYear()-1); break;
+            case '1d':  since.setDate(since.getDate()-1);           break;
+            case '1w':  since.setDate(since.getDate()-7);           break;
+            case '1m':  since.setMonth(since.getMonth()-1);         break;
+            case '1y':  since.setFullYear(since.getFullYear()-1);   break;
+            default:    since = undefined;
         }
-        if (['1d', '1w', '1m', '1y'].indexOf(options.dateRange) >= 0) {
-            params += "&since=" + Math.floor(d.getTime()/*ms*/ / 1000);
+        if (since) {
+            params += "&since=" + Math.floor(since.getTime()/*ms*/ / 1000);
         }
         
         // Get data from current result page, and continue to next page if needed.

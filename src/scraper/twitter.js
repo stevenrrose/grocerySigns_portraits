@@ -136,18 +136,18 @@
             });
                 
             /**
-             * /twitter/statuses?dateRange={dateRange}
+             * /twitter/tweets?dateRange={dateRange}
              *
-             * Get statuses for the current user.
+             * Get tweets for the current user.
              *
-             *  @param dateRange    Date range for messages, takes any of the following values:
+             *  @param dateRange    Date range for tweets, takes any of the following values:
              *                          - undefined or empty: no range
              *                          - 1d: past day
              *                          - 1w: past week
              *                          - 1m: past month
              *                          - 1y: past year
              */
-            app.get('/twitter/statuses', function(req, res) {
+            app.get('/twitter/tweets', function(req, res) {
                 var dateRange = req.query.dateRange;
                 console.log(dateRange);
  
@@ -296,8 +296,7 @@
      * Fetch & scrape Twitter content. We get the following info:
      *
      *  - Profile info.
-     *  - Tweets TODO
-     *  - Photos TODO
+     *  - Tweet texts & photos.
      *
      *  @param options      Options object:
      *                      - dateRange: Date range for messages, takes any of the following values:
@@ -316,7 +315,7 @@
                 var userData = Cookies.getJSON(userCookie);
                 
                 // Issue Ajax call. Error conditions are handled by the global error handler.
-                $.getJSON('twitter/statuses', options)
+                $.getJSON('twitter/tweets', options)
                 .done(function(data, textStatus, jqXHR) {
                     info.success = true;
                     
@@ -345,10 +344,10 @@
                         }
                     }
                     
-                    // - Status texts.
+                    // - Tweet texts.
                     for (var i = 0; i < data.length; i++) {
-                        var status = data[i];
-                        var sentences = splitSentences(status.text);
+                        var tweet = data[i];
+                        var sentences = splitSentences(tweet.text);
                         for (var j = 0; j < sentences.length; j++) {
                             info.sentences.push(sentences[j]);
                         }
@@ -362,7 +361,18 @@
                         info.images.push(userData.profile_image_url_https);
                     }
                     
-                    // - Status images TODO.
+                    // - Tweet images.
+                    for (var i = 0; i < data.length; i++) {
+                        var tweet = data[i];
+                        if (tweet.entities && tweet.entities.media) {
+                            for (var j = 0; j < tweet.entities.media.length; j++) {
+                                var media = tweet.entities.media[j];
+                                if (media.type == 'photo') {
+                                    info.images.push(media.media_url);
+                                }
+                            }
+                        }
+                    }
                     
                     // Done!
                     callback(info);

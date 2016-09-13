@@ -134,7 +134,10 @@
                     });
                 });
             });
-                
+     
+            /** Maximum number of tweets to fetch. */
+            var maxTweets = 200;
+            
             /**
              * /twitter/tweets?dateRange={dateRange}
              *
@@ -149,7 +152,6 @@
              */
             app.get('/twitter/tweets', function(req, res) {
                 var dateRange = req.query.dateRange;
-                console.log(dateRange);
  
                 // Get accessToken, accessTokenSecret & user data from cookie.
                 var accessData, userData;
@@ -160,12 +162,47 @@
                     // Missing or misformed cookie.
                     return authError(res, "Missing cookie", 'error');
                 }
-                
-                // TODO dateRange handling
-                twitter.getTimeline('user', {screen_name: userData.screen_name, count: 200, trim_user: true, exclude_replies: true, include_rts: false}, accessData.accessToken, accessData.accessTokenSecret, function(error, data, response) {
-                    //TODO error handling
-                    return res.send(data);
-                });
+        
+                // For date range we'll have to scan tweet lists manually.
+                var since = new Date();
+                switch (dateRange) {
+                    case '1d':  since.setDate(since.getDate()-1);           break;
+                    case '1w':  since.setDate(since.getDate()-7);           break;
+                    case '1m':  since.setMonth(since.getMonth()-1);         break;
+                    case '1y':  since.setFullYear(since.getFullYear()-1);   break;
+                    default:    since = undefined;
+                }
+                twitter.getTimeline(
+                    'user', 
+                    {
+                        screen_name: userData.screen_name, 
+                        count: maxTweets, 
+                        trim_user: true, 
+                        exclude_replies: true, 
+                        include_rts: false
+                    }, 
+                    accessData.accessToken, accessData.accessTokenSecret, 
+                    function(error, data, response) {
+                        //TODO error handling
+                        if (since) {
+                            // Return tweets past the time limit.
+                            var results = [];
+                            for (var i = 0; i < data.length; i++) {
+                                var tweet = data[i];
+                                try {
+                                    if (new Date(tweet.created_at) >= since) {
+                                        results.push(tweet);
+                                    }
+                                } catch (e) {}
+                            }
+                            return res.send(results);
+                        } else {
+                            // Return complete list.
+                            return res.send(data);
+                        }
+                        
+                    }
+                );
             });
         };
         return;

@@ -384,28 +384,32 @@
                         var people = response.result[peopleId].result;
                         var profile = response.result[getProfileId].result;
                         
-                        // Main info.
+                        // Meta info.
                         info.id = profile.emailAddress||'';
                         info.url = 'mailto:'+profile.emailAddress;
                         info.label = people.displayName||'';
                         
-                        // Profile image.
-                        info.images = [];
-                        if (people.image) {
-                            info.images.push(people.image.url);
-                        }
+                        // Fixed fields.
+
+                        // - Title = name.
+                        info.title = people.displayName||'';
+                        
+                        // - Vendor = email address.
+                        info.vendor = profile.emailAddress||'';
+                        
+                        // - Price = number of messages.
+                        info.price = profile.messagesTotal.toString();
                     
                         // Sentences.
                         info.sentences = [];
                         
-                        // - Title = name.
-                        info.sentences.push(people.displayName||'');
+                        // Images.
                         
-                        // - Subtitle = email address.
-                        info.sentences.push(profile.emailAddress||'');
-                        
-                        // - Price = number of messages.
-                        info.sentences.push(profile.messagesTotal.toString());
+                        // - Profile image.
+                        info.images = [];
+                        if (people.image) {
+                            info.images.push(people.image.url);
+                        }
                         
                         // Message subjects/body/images.
                         getMessages(options, function(infoMessages) {

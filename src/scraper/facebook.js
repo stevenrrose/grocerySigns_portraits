@@ -30,7 +30,7 @@
     
     // Facebook settings.
     var APP_ID = '112125819241682';
-    var APP_SCOPES = 'public_profile,user_about_me,user_birthday,user_education_history,user_hometown,user_location,user_photos,user_posts,user_work_history,user_religion_politics';
+    var APP_SCOPES = 'public_profile,user_hometown,user_location,user_photos,user_friends,user_posts';
     
     // Load the SDK asynchronously.
     window.fbAsyncInit = function() {
@@ -84,19 +84,6 @@
         });
     };
     
-    var getUserInfo = function(callback) {
-        throw "TODO";
-    };
-    var getUserWork = function(callback) {
-        throw "TODO";
-    };
-    var getUserEducation = function(callback) {
-        throw "TODO";
-    };
-    var getUserPhotos = function(callback) {
-        throw "TODO";
-    };
-     
     /** Minimum number of non-empty posts to return. */
     var minPosts = 100;
      
@@ -137,11 +124,11 @@
         
         // Get data from current result page, and continue to next page if needed.
         var extractPage = function(response, info, callback) {
-            // Extract nonempty messages.
+            // Extract nonempty messages and pictures.
             for (var i = 0; i < response.data.length; i++) {
                 var post = response.data[i];
-                if (post.message) {
-                    info.posts.push(post.message);
+                if (post.message || post.picture) {
+                    info.posts.push(post);
                 }
             }
             if (info.posts.length < minPosts && response.paging && response.paging.next) {
@@ -162,7 +149,7 @@
         };
         
         // Issue main request.
-        FB.api('/me/posts' + params, {fields: 'message'}, function(response) {
+        FB.api('/me/posts' + params, {fields: 'message,picture'}, function(response) {
             var info = {};
             if (response.error) {
                 // Pass error to callback.
@@ -211,10 +198,8 @@
     /**
      * Fetch & scrape Facebook content. We get the following info:
      *
-     *  - Basic profile info TODO
-     *  - Work & education TODO
-     *  - Photos TODO
-     *  - Posts
+     *  - Profile info.
+     *  - Post texts & photos.
      *
      *  @param options      Options object:
      *                      - dateRange: Date range for messages, takes any of the following values:
@@ -227,23 +212,87 @@
      */ 
     provider.fetch = function(options, callback) {
         var info = {success: false};
+        
+        // Generic FB API error handler.
+        var apiError = function(response) {
+            console.error(response.error.message);
+            info.success = false;
+            info.error = response.error.message;
+            callback(info);
+        };
+        
+        // Handle parallel requests.
+        var nbRequests = 0;
+        
         authorize(function(response) {
             if (response.status == 'connected') {
-                // Get user posts & extract sentences.
-                info.sentences = [];
-                getUserPosts(options, function(infoPosts) {
-                    if (infoPosts.posts) {
-                        for (var i = 0; i < infoPosts.posts.length; i++) {
-                            var sentences = splitSentences(infoPosts.posts[i]);
-                            for (var j = 0; j < sentences.length; j++) {
-                                info.sentences.push(sentences[j]);
-                            }
+                // Get main profile info.
+                FB.api('/me', {fields: 'id,link,name,picture,location,hometown,age_range'}, function(response) {
+                    if (response.error) {
+                        return apiError(response);
+                    }
+                    console.log(response);
+                    
+                    info.success = true;
+                    
+                    // Meta info.
+                    info.id = response.id;
+                    info.url = response.link;
+                    info.label = response.name;
+                    
+                    // Fixed fields.
+
+                    // - Title = name.
+                    info.title = response.name;
+                    
+                    // - Vendor = location or hometown.
+                    info.vendor = (response.location?response.location.name:response.hometown?response.hometown.name:'');
+                    
+                    // - Price = number of friends.
+                    nbRequests++;
+                    FB.api('/me/friends', {limit: 0}, function(response) {
+                        info.price = (response.summary?response.summary.total_count.toString():'');
+                        
+                        if (--nbRequests <= 0) {
+                            callback(info);
                         }
+                    });
+                    
+                    // Sentences.
+                    info.sentences = [];
+                    
+                    // Images.
+                    info.images = [];
+                    
+                    // - Profile images.
+                    if (response.picture && response.picture.data && response.picture.data.url) {
+                        info.images.push(response.picture.data.url);
                     }
                     
-                    // Done!
-                    info.success = true;
-                    callback(info);
+                    // User Posts.
+                    nbRequests++;
+                    getUserPosts(options, function(infoPosts) {
+                        for (var i = 0; i < infoPosts.posts.length; i++) {
+                            var post = infoPosts.posts[i];
+                            
+                            // Post text.
+                            if (post.message) {
+                                var sentences = splitSentences(post.message);
+                                for (var j = 0; j < sentences.length; j++) {
+                                    info.sentences.push(sentences[j]);
+                                }
+                            }
+                        
+                            // Post picture.
+                            if (post.picture) {
+                                info.images.push(post.picture);
+                            }
+                        }
+                    
+                        if (--nbRequests <= 0) {
+                            callback(info);
+                        }
+                    });
                 });
             } else {
                 // Can't issue API calls.

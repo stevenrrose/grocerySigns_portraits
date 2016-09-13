@@ -163,22 +163,24 @@
                 IN.API.Raw("/people/~:(" + fields.join(',') + ")?format=json").result(function(response) {
                     info.success = true;
                     
-                    // Main info.
+                    // Meta info.
                     info.id = response.id;
                     info.url = response.publicProfileUrl;
                     info.label = response.formattedName;
+
+                    // Fixed fields.
+
+                    // - Title = name.
+                    info.title = response.formattedName;
+                    
+                    // - Vendor = headline.
+                    info.vendor = response.headline||'';
+                    
+                    // - Price = number of connections.
+                    info.price = response.numConnections + (response.numConnectionsCapped?'+':'');
                     
                     // Sentences.
                     info.sentences = [];
-                    
-                    // - Title = name.
-                    info.sentences.push(response.formattedName);
-                    
-                    // - Subtitle = headline.
-                    info.sentences.push(response.headline||'');
-                    
-                    // - Price = number of connections.
-                    info.sentences.push(response.numConnections + (response.numConnectionsCapped?'+':''));
                     
                     // - Location, industry, summary, specialties, positions.
                     if (response.location) info.sentences.push(response.location.name);

@@ -412,56 +412,56 @@
                 // Get user data from localStorage.
                 var userData = JSON.parse(window.localStorage.getItem(userDataKey));
                 
-                // Issue Ajax call. Error conditions are handled by the global error handler.
+                info.success = true;
+                
+                // Meta info.
+                info.id = userData.id;
+                info.url = "https://twitter.com/" + userData.screen_name;
+                info.label = userData.name;
+                
+                // Fixed fields.
+
+                // - Title = name.
+                info.title = userData.name;
+                
+                // - Vendor = location.
+                info.vendor = userData.location||'';
+                
+                // - Price = number of tweets.
+                info.price = userData.statuses_count.toString();
+                
+                // Sentences.
+                info.sentences = [];
+                
+                // - Description.
+                if (userData.description) {
+                    var sentences = splitSentences(userData.description);
+                    for (var j = 0; j < sentences.length; j++) {
+                        info.sentences.push(sentences[j]);
+                    }
+                }
+                
+                // Images.
+                info.images = [];
+                
+                // - Profile images.
+                if (userData.profile_image_url_https) {
+                    info.images.push(userData.profile_image_url_https);
+                }
+                
+                // Issue Ajax call for tweets. Error conditions are handled by the global error handler.
                 $.getJSON('twitter/tweets', options)
                 .done(function(data, textStatus, jqXHR) {
-                    info.success = true;
-                    
-                    // Main info.
-                    info.id = userData.id;
-                    info.url = "https://twitter.com/" + userData.screen_name;
-                    info.label = userData.name;
-                    
-                    // Sentences.
-                    info.sentences = [];
-                    
-                    // - Title = name.
-                    info.sentences.push(userData.name);
-                    
-                    // - Subtitle = location.
-                    info.sentences.push(userData.location||'');
-                    
-                    // - Price = number of tweets.
-                    info.sentences.push(userData.statuses_count.toString());
-                    
-                    // - Description.
-                    if (userData.description) {
-                        var sentences = splitSentences(userData.description);
-                        for (var j = 0; j < sentences.length; j++) {
-                            info.sentences.push(sentences[j]);
-                        }
-                    }
-                    
-                    // - Tweet texts.
                     for (var i = 0; i < data.length; i++) {
                         var tweet = data[i];
+                        
+                        // Tweet text.
                         var sentences = splitSentences(tweet.text);
                         for (var j = 0; j < sentences.length; j++) {
                             info.sentences.push(sentences[j]);
                         }
-                    }
-                    
-                    // Images.
-                    info.images = [];
-                    
-                    // - Profile images.
-                    if (userData.profile_image_url_https) {
-                        info.images.push(userData.profile_image_url_https);
-                    }
-                    
-                    // - Tweet images.
-                    for (var i = 0; i < data.length; i++) {
-                        var tweet = data[i];
+                        
+                        // Tweet images.
                         if (tweet.entities && tweet.entities.media) {
                             for (var j = 0; j < tweet.entities.media.length; j++) {
                                 var media = tweet.entities.media[j];

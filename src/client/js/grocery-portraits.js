@@ -410,8 +410,12 @@ function fetchCallback(provider, info) {
  */
 function processSentences(info) {
     // Build sentences to populate fields with.
-    var sentences = [];
-    
+    // - title, vendor and price (even empty to ensure predictable order).
+    var sentences = [
+        normalizeString(info.title), 
+        normalizeString(info.vendor), 
+        normalizeString(info.price),
+    ];
     // - nonempty sentences.
     $.each(info.sentences||[], function(i, v) {
         v = normalizeString(v);

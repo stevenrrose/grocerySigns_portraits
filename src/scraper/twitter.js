@@ -14,29 +14,40 @@
     provider.hasDate = true;
     providers[provider.name] = provider;
         
-    /** Authentication cookie name. */
+    /** Request token cookie name. */
+    var reqCookie = 'twitter_req';
+        
+    /** Authorization/access cookie name. */
     var authCookie = 'twitter_auth';
     
     /** User data cookie name. */
     var userCookie = 'twitter_user';
     
     if (typeof(exports) !== 'undefined') {
-        // Running on server.
+        /*
+         *
+         * Interface with the Twitter REST API (server only).
+         *
+         * App URL: https://apps.twitter.com/app/12825684/show
+         *
+         */
+         
         var swig = require('swig');
         var twitterAPI = require('node-twitter-api');
         var cookieParser = require('cookie-parser');
+        var crypto = require('crypto');
+        
+        /** API and session keys stored on server. MUST BE KEPT SECRET!!! */
+        var twitterConfig = require('../config/twitter.json');
+        var twitter = new twitterAPI(twitterConfig);
 
         /**
-         * callbackPageTpl()
+         * callbackPageTpl
          * 
          * Template file for callback page.
          */
         var callbackPageTpl = swig.compileFile(__dirname + '/twitter_callback.html');
 
-        /** API and session keys stored on server. MUST BE KEPT SECRET!!! */
-        var twitterConfig = require('../config/twitter.json');
-        var twitter = new twitterAPI(twitterConfig);
-        
         /**
          * Generic authentication error handler.
          *
@@ -48,6 +59,7 @@
          */
         var authError = function(res, message, status) {
             console.log(message);
+            res.clearCookie(reqCookie);
             res.clearCookie(authCookie);
             var code;
             switch (status) {
@@ -56,6 +68,38 @@
             }
             return res.status(code).send(callbackPageTpl({status: status}));
         }
+        
+        /**
+         * Encrypt string. Used for cookies with sensitive data (request/access tokens).
+         *
+         *  @param string   Cleartext string.
+         *
+         *  @return encrypted string.
+         *
+         *  @see decrypt()
+         */
+        var encrypt = function(string) {
+            var cipher = crypto.createCipher('aes192', twitterConfig.authPassword);
+            var encrypted = cipher.update(string, 'utf8', 'base64');
+            encrypted += cipher.final('base64');
+            return encrypted;
+        };
+        
+        /**
+         * Decrypt string. Used for cookies with sensitive data (request/access tokens).
+         *
+         *  @param string   Encrypted string.
+         *
+         *  @return decrypted string.
+         *
+         *  @see encrypt()
+         */
+        var decrypt = function(string) {
+            var decipher = crypto.createDecipher('aes192', twitterConfig.authPassword);
+            var decrypted = decipher.update(string, 'base64', 'utf8');
+            decrypted += decipher.final('utf8');
+            return decrypted;
+        };
         
         /**
          * Define Twitter-specific routes.
@@ -75,9 +119,9 @@
                         return authError(res, "Error getting Twitter OAuth request token : " + error, 'error');
                     }
                     
-                    // Store requestToken and requestTokenSecret in signed cookie. TODO encrypt?
+                    // Store requestToken and requestTokenSecret in request cookie.
                     var requestData = {requestToken: requestToken, requestTokenSecret: requestTokenSecret};
-                    res.cookie(authCookie, JSON.stringify(requestData), {signed: true});
+                    res.cookie(reqCookie, encrypt(JSON.stringify(requestData)), {signed: true});
                     
                     // Redirect to auth window.
                     res.redirect(twitter.getAuthUrl(requestToken));
@@ -95,10 +139,10 @@
                     return authError(res, "Twitter OAuth Access denied", 'not_authorized');
                 }
                 
-                // Get requestToken & requestTokenSecret from cookie.
+                // Get requestToken & requestTokenSecret from request cookie.
                 var requestData;
                 try {
-                    requestData = JSON.parse(req.signedCookies[authCookie]);
+                    requestData = JSON.parse(decrypt(req.signedCookies[reqCookie]));
                 } catch (e) {
                     // Missing or misformed cookie.
                     return authError(res, "Missing cookie", 'error');
@@ -123,9 +167,12 @@
                         // Success!
                         console.log("Twitter user authenticated", data["screen_name"]);
                         
-                        // Store accessToken and accessTokenSecret in signed cookie. TODO encrypt?
+                        // Clear request cookie.
+                        res.clearCookie(reqCookie);
+                        
+                        // Store accessToken and accessTokenSecret in authorization cookie.
                         var accessData = {accessToken: accessToken, accessTokenSecret: accessTokenSecret};
-                        res.cookie(authCookie, JSON.stringify(accessData), {signed: true});
+                        res.cookie(authCookie, encrypt(JSON.stringify(accessData)), {signed: true});
                         
                         // Store user data in plain cookie.
                         res.cookie(userCookie, JSON.stringify(data));
@@ -156,7 +203,7 @@
                 // Get accessToken, accessTokenSecret & user data from cookie.
                 var accessData, userData;
                 try {
-                    accessData = JSON.parse(req.signedCookies[authCookie]);
+                    accessData = JSON.parse(decrypt(req.signedCookies[authCookie]));
                     userData = JSON.parse(req.cookies[userCookie]);
                 } catch (e) {
                     // Missing or misformed cookie.
@@ -183,7 +230,10 @@
                     }, 
                     accessData.accessToken, accessData.accessTokenSecret, 
                     function(error, data, response) {
-                        //TODO error handling
+                        if (error) {
+                            return authError(res, error, 'error');
+                        }
+
                         if (since) {
                             // Return tweets past the time limit.
                             var results = [];
@@ -212,8 +262,6 @@
     /*
      *
      * Interface with the Twitter server endpoints (client only).
-     *
-     * App URL: https://apps.twitter.com/app/12825684/show
      *
      */
     

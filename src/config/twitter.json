@@ -1,5 +1,6 @@
 {
 	"consumerKey": "HDsvdYrvuBsP1FXIvszQor0ya",
 	"consumerSecret": "RM7KaOZ5SMQEzYX6b1kqjCwx4pN9o3TsUUEgnQ8IjLZ2zmEy3x",
-	"callback": "http://localhost:3001/twitter/callback"
+	"callback": "http://localhost:3001/twitter/callback",
+	"authPassword": "dslfd grfdgn vklfjdgkbv hkfdjgvl kfdng vfd"
 }

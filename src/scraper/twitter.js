@@ -38,7 +38,12 @@
         var crypto = require('crypto');
         
         /** API and session keys stored on server. MUST BE KEPT SECRET!!! */
-        var twitterConfig = require('../config/twitter.json');
+        var twitterConfig;
+        try {
+            twitterConfig = require('../config/twitter.local.json');
+        } catch (e) {
+            twitterConfig = require('../config/twitter.json');
+        }
         var twitter = new twitterAPI(twitterConfig);
 
         /**
@@ -79,7 +84,7 @@
          *  @see decrypt()
          */
         var encrypt = function(string) {
-            var cipher = crypto.createCipher('aes192', twitterConfig.authPassword);
+            var cipher = crypto.createCipher('aes192', twitterConfig.cookiePassword);
             var encrypted = cipher.update(string, 'utf8', 'base64');
             encrypted += cipher.final('base64');
             return encrypted;
@@ -95,7 +100,7 @@
          *  @see encrypt()
          */
         var decrypt = function(string) {
-            var decipher = crypto.createDecipher('aes192', twitterConfig.authPassword);
+            var decipher = crypto.createDecipher('aes192', twitterConfig.cookiePassword);
             var decrypted = decipher.update(string, 'base64', 'utf8');
             decrypted += decipher.final('utf8');
             return decrypted;
@@ -116,7 +121,7 @@
                 // Step 1: Get request token.
                 twitter.getRequestToken(function(error, requestToken, requestTokenSecret, results){
                     if (error) {
-                        return authError(res, "Error getting Twitter OAuth request token : " + error, 'error');
+                        return authError(res, "Error getting Twitter OAuth request token : " + JSON.stringify(error), 'error');
                     }
                     
                     // Store requestToken and requestTokenSecret in request cookie.
@@ -155,13 +160,13 @@
                 // Step 2: Get access token.
                 twitter.getAccessToken(requestData.requestToken, requestData.requestTokenSecret, req.query.oauth_verifier, function(error, accessToken, accessTokenSecret, results) {
                     if (error) {
-                        return authError(res, "Error getting Twitter OAuth access token : " + error, 'error');
+                        return authError(res, "Error getting Twitter OAuth access token : " + JSON.stringify(error), 'error');
                     }
                     
                     // Step 3: Verify credentials.
                     twitter.verifyCredentials(accessToken, accessTokenSecret, {}, function(error, data, response) {
                         if (error) {
-                            return authError(res, "Error verifying Twitter credentials : " + error, 'not_authorized');
+                            return authError(res, "Error verifying Twitter credentials : " + JSON.stringify(error), 'not_authorized');
                         }
                         
                         // Success!
@@ -231,7 +236,7 @@
                     accessData.accessToken, accessData.accessTokenSecret, 
                     function(error, data, response) {
                         if (error) {
-                            return authError(res, error, 'error');
+                            return authError(res, "Error getting tweets : " + JSON.stringify(error), 'error');
                         }
 
                         if (since) {

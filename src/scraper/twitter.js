@@ -179,10 +179,11 @@
                         var accessData = {accessToken: accessToken, accessTokenSecret: accessTokenSecret};
                         res.cookie(authCookie, encrypt(JSON.stringify(accessData)), {signed: true});
                         
-                        // Store user data in plain cookie.
-                        res.cookie(userCookie, JSON.stringify(data));
+                        // Store user data in plain cookie. Only keep things necessary on the server side to limit cookie size.
+                        var userData = {id: data.id, screen_name: data.screen_name};
+                        res.cookie(userCookie, JSON.stringify(userData));
                         
-                        return res.send(callbackPageTpl({status: 'connected'}));
+                        return res.send(callbackPageTpl({status: 'connected', data: JSON.stringify(data)}));
                     });
                 });
             });
@@ -283,7 +284,10 @@
         provider.dispatchEvent(new CustomEvent('loaded', {detail: {message: "API loaded"}}));
     };
     $(function() { window.setTimeout(twAsyncInit, 0); });
-
+    
+    /** User data localStorage key. */
+    var userDataKey = 'twitter_userData';
+    
     /**
      * Check app authorization status.
      *
@@ -312,7 +316,10 @@
         var called = false;
         
         // Register callback function on this window. This will be called from the popup window's callback page.
-        window.twAuthCallback = function(status) {
+        window.twAuthCallback = function(status, data) {
+            // Save user data in local storage.
+            window.localStorage.setItem(userDataKey, JSON.stringify(data));
+            
             var detail = {};
             switch (status) {
                 case 'connected':       detail = {authorized: true,     message: "Authorization granted"}; break;
@@ -352,6 +359,7 @@
             }
         }, 100);
     };
+    
     
     /*
      *
@@ -401,8 +409,8 @@
         var info = {success: false};
         authorize(function(status) {
             if (status == 'connected') {
-                // Get user data from cookie.
-                var userData = Cookies.getJSON(userCookie);
+                // Get user data from localStorage.
+                var userData = JSON.parse(window.localStorage.getItem(userDataKey));
                 
                 // Issue Ajax call. Error conditions are handled by the global error handler.
                 $.getJSON('twitter/tweets', options)

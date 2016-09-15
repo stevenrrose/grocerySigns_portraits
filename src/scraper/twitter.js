@@ -45,7 +45,15 @@
             twitterConfig = require('../config/twitter.json');
         }
         var twitter = new twitterAPI(twitterConfig);
-
+        
+        /** 
+         * Twitter authentication URL. Don't use twitterAPI's getAuthUrl() as it uses the wrong domain (twitter.com 
+         * instead of api.twitter.com), which makes the process fail on some clients. For example, Android will
+         * close the popup and display the app chooser instead, so even if the user authenticates successfully the
+         * app wouldn't know.
+         */
+        var authUrl = 'https://api.twitter.com/oauth/authenticate?oauth_token=';
+        
         /**
          * callbackPageTpl
          * 
@@ -71,7 +79,7 @@
                 case 'not_authorized':  code = 401; break;
                 default:                code = 400; break;
             }
-            return res.status(code).send(callbackPageTpl({status: status}));
+            return res.status(code).send(callbackPageTpl({status: status, data: 'null'}));
         }
         
         /**
@@ -129,7 +137,7 @@
                     res.cookie(reqCookie, encrypt(JSON.stringify(requestData)), {signed: true});
                     
                     // Redirect to auth window.
-                    res.redirect(twitter.getAuthUrl(requestToken));
+                    return res.redirect(authUrl + requestToken);
                 });
             });
             
@@ -416,7 +424,7 @@
                 
                 // Meta info.
                 info.id = userData.id;
-                info.url = "https://twitter.com/" + userData.screen_name;
+                info.url = 'https://twitter.com/intent/user?screen_name=' + userData.screen_name;
                 info.label = userData.name;
                 
                 // Fixed fields.

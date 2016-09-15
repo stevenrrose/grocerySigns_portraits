@@ -247,7 +247,7 @@
                                 
                                 // Get body.
                                 var body = result.payload.body;
-                                if (body.size && body.data) {
+                                if (result.payload.mimeType == 'text/plain' && body.size && body.data) {
                                     message.body = message.body.concat(getMessageBody(base64urlToString(body.data)));
                                 }
                                 

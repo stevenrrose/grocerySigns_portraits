@@ -477,20 +477,15 @@ function scrapeRandom(provider, options) {
  *  Request authorization from the currently selected provider.
  */
 function authorize() {
-    // Disable interface elements.
-    enableInterface(false, "#authorizeDialog");
-
     try {
         var provider = providers[$("#source").val()];
         provider.authorize(function(info) {
             (info.success ? console.log : console.error)(provider.name, info.message);
-            enableInterface(true, "#authorizeDialog");
             displayMessage(info.success, "Authorization", provider.name + " " + info.message);
         });
     } catch (e) {
         console.error("exception", e);
         displayMessage(false, "Exception!", "Exception: " + e);
-        enableInterface(true, "#authorizeDialog");
     }
 }
 

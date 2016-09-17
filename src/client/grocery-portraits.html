@@ -214,17 +214,6 @@
     $(".page").addClass(pageFormatClass);
     $(".page-template, .color-selector").each(function(i, e) {$(e).change(function() {refreshFrame($(this).data('page-index'));});});
     </script>
-	
-	<!-- Authorize modal dialog. -->
-    <div class="modal fade" id="authorizeDialog" tabindex="-1" role="dialog" aria-labelledby="authorizeLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h4 class="modal-title" id="authorizeLabel">Authorizing...</h4>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Scraping progress modal dialog. -->
     <div class="modal fade" id="progressDialog" tabindex="-1" role="dialog" aria-labelledby="scrapeLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">

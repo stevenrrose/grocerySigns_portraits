@@ -480,7 +480,11 @@ function authorize() {
     try {
         var provider = providers[$("#source").val()];
         provider.authorize(function(info) {
-            (info.success ? console.log : console.error)(provider.name, info.message);
+            if (info.success) {
+                console.log(provider.name, info.message);
+            } else {
+                console.error(provider.name, info.message);
+            }
             displayMessage(info.success, "Authorization", provider.name + " " + info.message);
         });
     } catch (e) {

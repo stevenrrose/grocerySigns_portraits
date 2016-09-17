@@ -124,7 +124,7 @@
                 info.message = "Authorization granted";
             } else {
                 info.success = false;
-                info.message = "Authorization denied";
+                info.message = "Authorization denied (NOTE: on iOS, try refreshing the page)";
             }
             callback(info);
         });

@@ -224,6 +224,15 @@
                     return authError(res, "Missing cookie", 'error');
                 }
         
+        
+                // TODO select random window in date range
+                // We can use the search API with "since:" and "until:" operators
+                // For "all time" we can use the "created_at" field in user data then select a date range
+                // https://dev.twitter.com/rest/public/search
+                // There is also (undocumented) page selection with "page=#" along with count: 
+                // https://dev.twitter.com/rest/public/timelines
+                // The most recent status ID is status.id in the user data
+        
                 // For date range we'll have to scan tweet lists manually.
                 var since = new Date();
                 switch (dateRange) {
@@ -302,8 +311,8 @@
      *  @return boolean.
      */
     var isAuthorized = function() {
-        // Assume app is authorized when cookie is set.
-        return !!Cookies.get(authCookie);
+        // Assume app is authorized when cookie is set and user data exists in localStorage.
+        return !!Cookies.get(authCookie) && !!window.localStorage.getItem(userDataKey);
     }
     
     /**
@@ -397,6 +406,28 @@
             callback(info);
         });
     };
+    
+    /**
+     * Get the lower bound for date ranges.
+     * Useful when selecting a random window in a potentially large range (e.g. "All time").
+     *
+     * We use the user account creation date as the lower bound for date range. This data is
+     * readily available after authentication.
+     *
+     *  @param callback     Called with either date upon success or a falsy value upon failure.
+     */
+    provider.getMinDate = function(callback) {
+        try {
+            // Get user data from localStorage.
+            var userData = JSON.parse(window.localStorage.getItem(userDataKey));
+            
+            // Return account creation date.
+            callback(new Date(userData.created_at));
+        } catch (e) {
+            // Failure.
+            callback();
+        }  
+    }
     
     /**
      * Fetch & scrape Twitter content. We get the following info:

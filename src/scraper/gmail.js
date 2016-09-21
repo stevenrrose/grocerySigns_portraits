@@ -119,7 +119,18 @@
         // Gmail API calls use the base64url encoding, so convert chars 62-63 from -_ to +/.
         return 'data:' + type + ';base64,' + data.replace(/-/g,'+').replace(/_/g,'/');
     }
-     
+
+    /**
+     * Get Unix timestamp from Javascript date.
+     *
+     *  @param date     Javascript date.
+     *
+     *  @return Unix timestamp = date.getTime() / 1000
+     */
+    var getTimestamp = function(date) {
+        return Math.floor(date.getTime()/*ms*/ / 1000);
+    };
+    
     /**
      * Ensure that the Gmail user is logged & the app is authenticated before issuing calls.
      *
@@ -193,6 +204,11 @@
         // Parameters passed to messages.list.
         var params = {userId: 'me', maxResults: maxMessages};
         
+        // TODO select random window in date range
+        // We can use "newer:" and "older:" params
+        // For "all time" we have to find the oldest one iteratively
+        
+        
         // For date range we use the search feature:
         //  https://developers.google.com/gmail/api/guides/filtering
         //  https://support.google.com/mail/answer/7190?hl=en
@@ -219,6 +235,7 @@
                 var batch = gapi.client.newBatch();
                 for (var i = 0; i < messages.length; i++) {
                     var message = messages[i];
+                    // TODO add fields to limit message size
                     batch.add(gapi.client.gmail.users.messages.get({userId: 'me', id: message.id}));
                 }
                 batch.then(
@@ -354,7 +371,95 @@
             callback(info);
         });
     };
-     
+    
+    /**
+     * Get the lower bound for date ranges. 
+     * Useful when selecting a random window in a potentially large range (e.g. "All time").
+     *
+     * There is no direct way to get the oldest message in a Gmail account so we use the
+     * search feature with date ranges:
+     *
+     *      https://developers.google.com/gmail/api/guides/filtering
+     *      https://support.google.com/mail/answer/7190?hl=en
+     *
+     *  @param callback     Called with either date upon success or a falsy value upon failure.
+     */
+    provider.getMinDate = function(callback) {
+        // General failure handler.
+        var failure = function() {
+            callback();
+        };
+        
+        // Find first year with at least one message: build batch with all year ranges in parallel.
+        var minYear = 2000; // Arbitrary.
+        var now = new Date();
+        var batch = gapi.client.newBatch();
+        var years = []; // Maps request ID to year.
+        for (var y = minYear; y <= now.getFullYear(); y++) {
+            // Date range for given year.
+            var after = new Date(y, 0, 1);
+            var before = new Date(y+1, 0, 1);
+            
+            // Enqueue request in batch.
+            var requestId = batch.add(gapi.client.gmail.users.messages.list({
+                userId: 'me', 
+                maxResults: 1, // Need only one.
+                q: 'before:' + getTimestamp(before) + ' after:' + getTimestamp(after)
+            }));
+            years[requestId] = y;
+        }
+        batch.then(
+            function(response) {
+                // Find successful batch response with lowest year.
+                var minYear = Number.MAX_VALUE;
+                for (var requestId in response.result) {
+                    try {
+                        var messages = response.result[requestId].result.messages;
+                        if (messages && messages.length) {
+                            minYear = Math.min(minYear, years[requestId]);
+                        };
+                    } catch (e) {console.error(e);}
+                }
+                if (minYear == Number.MAX_VALUE) failure();
+                        
+                // Now find first month in year. Use the same technique here.
+                var batch = gapi.client.newBatch();
+                var months = []; // Maps request ID to month.
+                for (var m = 0; m < 12; m++) {
+                    // Date range for given month in year.
+                    var after = new Date(minYear, m, 1);
+                    var before = new Date(minYear, m+1, 1);
+                    
+                    // Enqueue request in batch.
+                    var requestId = batch.add(gapi.client.gmail.users.messages.list({userId: 'me', maxResults: 1, q: 'before:' + getTimestamp(before) + ' after:' + getTimestamp(after)}));
+                    months[requestId] = m;
+                }
+                batch.then(
+                    function(response) {
+                        // Find successful batch response with lowest month.
+                        var minMonth = Number.MAX_VALUE;
+                        for (var requestId in response.result) {
+                            try {
+                                var messages = response.result[requestId].result.messages;
+                                if (messages && messages.length) {
+                                    minMonth = Math.min(minMonth, months[requestId]);
+                                };
+                            } catch (e) {console.error(e);}
+                        }
+                        if (minMonth == Number.MAX_VALUE) failure();
+                        
+                        // Found!
+                        
+                        // Year+month is good enough so stop there.
+                        callback(new Date(minYear, minMonth, 1));
+                    },
+                    failure
+                );
+            },
+            failure
+        );
+    };
+         
     /**
      * Fetch & scrape Gmail content. We get the following info:
      *

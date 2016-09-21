@@ -68,6 +68,17 @@
             fjs.parentNode.insertBefore(js, fjs);
         }(document, 'script', 'facebook-jssdk'));
     });
+
+    /**
+     * Get Unix timestamp from Javascript date.
+     *
+     *  @param date     Javascript date.
+     *
+     *  @return Unix timestamp = date.getTime() / 1000
+     */
+    var getTimestamp = function(date) {
+        return Math.floor(date.getTime()/*ms*/ / 1000);
+    };
     
     /**
      * Ensure that the Facebook user is logged & the app is authenticated before issuing calls.
@@ -110,6 +121,11 @@
         // Parameters passed to /me/posts.
         var params = "?limit=" + maxPosts;
         
+        
+        // TODO select random window in date range
+        // We can use "until" param along with "since"
+        // For "all time" we have to find the oldest one iteratively
+        
         // For date range we use time-based pagination:
         //  https://developers.facebook.com/docs/graph-api/using-graph-api#time
         var since = new Date();
@@ -121,7 +137,7 @@
             default:    since = undefined;
         }
         if (since) {
-            params += "&since=" + Math.floor(since.getTime()/*ms*/ / 1000);
+            params += "&since=" + getTimestamp(since);
         }
         
         // Get data from current result page, and continue to next page if needed.
@@ -194,6 +210,82 @@
                 }
             }
             callback(info);
+        });
+    };
+    
+    /**
+     * Get the lower bound for date ranges. 
+     * Useful when selecting a random window in a potentially large range (e.g. "All time").
+     *
+     * There is no direct way to get the oldest post in a Facebook account so we do it iteratively
+     * using time-based pagination:
+     *
+     *      https://developers.facebook.com/docs/graph-api/using-graph-api#time
+     *
+     *  @param callback     Called with either date upon success or a falsy value upon failure.
+     */
+    provider.getMinDate = function(callback) {
+        // General failure handler.
+        var failure = function() {
+            callback();
+        };
+        
+        // Find first year with at least one post: build batch with all year ranges in parallel.
+        var minYear = 2004; // Facebook year of birth.
+        var now = new Date();
+        var years = [];
+        for (var y = minYear; y <= now.getFullYear(); y++) {
+            // Date range for given year.
+            var since = new Date(y, 0, 1);
+            var until = new Date(y+1, 0, 1);
+            years.push({
+                method: 'GET', 
+                relative_url: 'me/posts?fields=created_time&since=' + getTimestamp(since) + '&until=' + getTimestamp(until) + '&limit=1'
+            });
+        }
+        FB.api('/', 'POST', {batch: years}, function (response) {
+            // Find successful batch response with lowest year. Responses are in request order.
+            for (var i = 0; i < response.length; i++) {
+                try {
+                    var body = JSON.parse(response[i].body);
+                    if (!body.data || !body.data.length) continue;
+                    
+                    // Found non-empty result, now find oldest post year.
+                    var year = new Date(body.data[body.data.length-1].created_time).getFullYear();
+                    
+                    // Now find first month in year. Use the same technique here.
+                    var months = [];
+                    for (var m = 0; m <= 12; m++) {
+                        var since = new Date(year, m, 1);
+                        var until = new Date(year, m+1, 1);
+                        months.push({
+                            method: 'GET', 
+                            relative_url: 'me/posts?fields=created_time&since=' + getTimestamp(since) + '&until=' + getTimestamp(until) + '&limit=1'
+                        });
+                    }
+                    FB.api('/', 'POST', {batch: months}, function (response) {
+                        // Find successful batch response with lowest month. Responses are in request order.
+                        for (var i = 0; i < response.length; i++) {
+                            try {
+                                var body = JSON.parse(response[i].body);
+                                if (!body.data || !body.data.length) continue;
+                        
+                                // Found non-empty result, now find oldest post month.
+                                var month = new Date(body.data[body.data.length-1].created_time).getMonth();
+                    
+                                // Year+month is good enough so stop there.
+                                callback(new Date(year, month, 1));
+                                return;
+                            } catch (e) {console.error(e);}
+                        }
+                        
+                        failure();
+                    });
+                    return;
+                } catch (e) {console.error(e);}
+            }
+            
+            failure();
         });
     };
     

@@ -451,8 +451,9 @@ function processImages(info) {
  *                          - 1w: past week
  *                          - 1m: past month
  *                          - 1y: past year
+ *  @param dateSpan     Date window span.
  */
-function scrapeRandom(provider, dateRange) {
+function scrapeRandom(provider, dateRange, dateSpan) {
     // Disable interface elements.
     enableInterface(false);
     
@@ -481,16 +482,13 @@ function scrapeRandom(provider, dateRange) {
             // - Beginning of date range.
             var since = new Date(min + Math.floor(Math.random()*(max-min)));
             
-            // - Date window span.
-            var span = 7;
-            
             // - End of date range.
             var until = new Date(since);
-            until.setDate(until.getDate()+span);
+            until.setDate(until.getDate() + dateSpan);
             if (until.getTime() > max) {
                 // Date is in the future, adjust range.
                 until.setTime(max);
-                since.setTime(until); since.setDate(since.getDate()-span);
+                since.setTime(until); since.setDate(since.getDate() - dateSpan);
                 if (since.getTime() < min) {
                     // Shorten range.
                     since.setTime(min);
@@ -567,7 +565,8 @@ function authorize() {
 function scrapeFields() {
     var provider = providers[$("#source").val()];
     var dateRange = $("#date").val();
-    scrapeRandom(provider, dateRange);
+    var dateSpan = Number.parseInt($("#dateSpan").val());
+    scrapeRandom(provider, dateRange, dateSpan);
 }
 
 /**
@@ -590,7 +589,7 @@ function providerChanged() {
             $("#authorize").show().prop('disabled', false);
             $("#generate").hide().prop('disabled', true);
         }
-        $("#date").prop('disabled', !provider.hasDate);
+        $("#date, #dateSpan").prop('disabled', !provider.hasDate);
     } else {
         $("#generate, #authorize").prop('disabled', true);
         $("#authorize").show();

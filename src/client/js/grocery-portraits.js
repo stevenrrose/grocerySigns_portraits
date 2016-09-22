@@ -445,31 +445,99 @@ function processImages(info) {
  *  Scrape random content and call fetchCallback() upon result.
  *  
  *  @param provider     Provider to scrape.
- *  @param options      Options passed to provider.fetch().
+ *  @param dateRange    Date range for messages, takes any of the following values:
+ *                          - undefined or empty: no range
+ *                          - 1d: past day
+ *                          - 1w: past week
+ *                          - 1m: past month
+ *                          - 1y: past year
  */
-function scrapeRandom(provider, options) {
+function scrapeRandom(provider, dateRange) {
     // Disable interface elements.
     enableInterface(false);
     
-    // Fetch content from provider.
-    var label = "Fetching " + provider.name + " content";
-    progress(1, 1, label + "...");
+    // Main step.
+    var main = function(step, nbSteps) {
+        var options = {};
+        
+        if (provider.hasDate) {
+            // Compute date bounds.
+            var now = new Date();
+            var minDate = new Date(now);
+            switch (dateRange) {
+                case '1d':  minDate.setDate(now.getDate()-1);           break;
+                case '1w':  minDate.setDate(now.getDate()-7);           break;
+                case '1m':  minDate.setMonth(now.getMonth()-1);         break;
+                case '1y':  minDate.setFullYear(now.getFullYear()-1);   break;
+                default:    minDate.setTime(0);
+            }
+            if (provider.minDate && provider.minDate > minDate) {
+                minDate = new Date(provider.minDate);
+            }
+            
+            // Select random timestamp range.
+            var min = minDate.getTime(), max = now.getTime();
+            
+            // - Beginning of date range.
+            var since = new Date(min + Math.floor(Math.random()*(max-min)));
+            
+            // - Date window span.
+            var span = 7;
+            
+            // - End of date range.
+            var until = new Date(since);
+            until.setDate(until.getDate()+span);
+            if (until.getTime() > max) {
+                // Date is in the future, adjust range.
+                until.setTime(max);
+                since.setTime(until); since.setDate(since.getDate()-span);
+                if (since.getTime() < min) {
+                    // Shorten range.
+                    since.setTime(min);
+                }
+            }
+            
+            options.since = since;
+            options.until = until;
+console.log(since, until);
+        }
+        
+        // Fetch content from provider.
+        var label = "Fetching " + provider.name + " content";
+        progress(step, nbSteps, label + "...");
 
-    // GA: scrape request.
-    ga('send', 'event', {
-        eventCategory: 'Scraper',
-        eventAction: 'request',
-        eventLabel: label,
-        'dimension1': provider.name,
-        'metric1': 1
-    });
+        // GA: scrape request.
+        ga('send', 'event', {
+            eventCategory: 'Scraper',
+            eventAction: 'request',
+            eventLabel: label,
+            'dimension1': provider.name,
+            'metric1': 1
+        });
 
-    try {
-        provider.fetch(options, function(info) {fetchCallback(provider, info);});
-    } catch (e) {
-        console.log("exception", e);
-        displayMessage(false, "Exception!", "Exception: " + e);
-        enableInterface(true);
+        try {
+            provider.fetch(options, function(info) {fetchCallback(provider, info);});
+        } catch (e) {
+            console.log("exception", e);
+            displayMessage(false, "Exception!", "Exception: " + e);
+            enableInterface(true);
+        }
+    };
+    
+    if (provider.hasDate && !provider.minDate) {
+        // We need min date first.
+        var label = "Getting minimum date from " + provider.name;
+        progress(1, 2, label + "...");
+
+        provider.getMinDate(function(minDate) {
+            provider.minDate = minDate;
+            
+            // Call main step in any case.
+            main(2, 2);
+        });
+    } else {
+        // Call main step directly.
+        main(1,1);
     }
 }
 
@@ -498,8 +566,8 @@ function authorize() {
  */
 function scrapeFields() {
     var provider = providers[$("#source").val()];
-    var options = {dateRange: $("#date").val()};
-    scrapeRandom(provider, options);
+    var dateRange = $("#date").val();
+    scrapeRandom(provider, dateRange);
 }
 
 /**

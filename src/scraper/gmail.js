@@ -119,17 +119,6 @@
         // Gmail API calls use the base64url encoding, so convert chars 62-63 from -_ to +/.
         return 'data:' + type + ';base64,' + data.replace(/-/g,'+').replace(/_/g,'/');
     }
-
-    /**
-     * Get Unix timestamp from Javascript date.
-     *
-     *  @param date     Javascript date.
-     *
-     *  @return Unix timestamp = date.getTime() / 1000
-     */
-    var getTimestamp = function(date) {
-        return Math.floor(date.getTime()/*ms*/ / 1000);
-    };
     
     /**
      * Ensure that the Gmail user is logged & the app is authenticated before issuing calls.
@@ -189,34 +178,26 @@
     /**
      * Get messages from Gmail.
      *
-     *  @param options      Options:
-     *                      - dateRange: Date range for messages, takes any of the following values:
-     *                          * undefined or empty: no range
-     *                          * 1d: past day
-     *                          * 1w: past week
-     *                          * 1m: past month
-     *                          * 1y: past year
-     *  @param callback     Function called with results.
+     *  @param options          Options object.
+     *  @param options.since    Minimum date.
+     *  @param options.until    Maximum date.
+     *  @param callback         Function called with results.
      *
      *  @see provider.fetch()
      */
     var getMessages = function(options, callback) {
         // Parameters passed to messages.list.
         var params = {userId: 'me', maxResults: maxMessages};
-        
-        // TODO select random window in date range
-        // We can use "newer:" and "older:" params
-        // For "all time" we have to find the oldest one iteratively
-        
-        
-        // For date range we use the search feature:
+
+        // For date range we use the search feature with 'before:' and 'after:' operators:
         //  https://developers.google.com/gmail/api/guides/filtering
         //  https://support.google.com/mail/answer/7190?hl=en
-        switch (options.dateRange) {
-            case '1d':    params.q = 'newer_than:1d'; break;
-            case '1w':    params.q = 'newer_than:7d'; break;
-            case '1m':    params.q = 'newer_than:1m'; break;
-            case '1y':    params.q = 'newer_than:1y'; break;
+        params.q = '';
+        if (options.since) {
+            params.q += ' after:' + getTimestamp(options.since);
+        }
+        if (options.until) {
+            params.q += ' before:' + getTimestamp(options.until);
         }
 
         // Returned results.
@@ -467,14 +448,10 @@
      *  - Textual body (not HTML).
      *  - Embedded images.
      *
-     *  @param options      Options:
-     *                      - dateRange: Date range for messages, takes any of the following values:
-     *                          * undefined or empty: no range
-     *                          * 1d: past day
-     *                          * 1w: past week
-     *                          * 1m: past month
-     *                          * 1y: past year
-     *  @param callback     Function called with content info.
+     *  @param options          Options object.
+     *  @param options.since    Minimum date.
+     *  @param options.until    Maximum date.
+     *  @param callback         Function called with content info.
      */ 
     provider.fetch = function(options, callback) {
         var info = {success: false};

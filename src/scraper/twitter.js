@@ -32,6 +32,7 @@
          *
          */
          
+        var request = require('request');
         var swig = require('swig');
         var twitterAPI = require('node-twitter-api');
         var cookieParser = require('cookie-parser');
@@ -200,19 +201,16 @@
             var maxTweets = 200;
             
             /**
-             * /twitter/tweets?dateRange={dateRange}
+             * /twitter/tweets?since={timestamp}&until={timestamp}
              *
              * Get tweets for the current user.
              *
-             *  @param dateRange    Date range for tweets, takes any of the following values:
-             *                          - undefined or empty: no range
-             *                          - 1d: past day
-             *                          - 1w: past week
-             *                          - 1m: past month
-             *                          - 1y: past year
+             *  @param since    Minimum tweet timestamp.
+             *  @param until    Maximum tweet timestamp.
              */
             app.get('/twitter/tweets', function(req, res) {
-                var dateRange = req.query.dateRange;
+                var since = req.query.since;
+                var until = req.query.until;
  
                 // Get accessToken, accessTokenSecret & user data from cookie.
                 var accessData, userData;
@@ -223,59 +221,80 @@
                     // Missing or misformed cookie.
                     return authError(res, "Missing cookie", 'error');
                 }
-        
-        
-                // TODO select random window in date range
-                // We can use the search API with "since:" and "until:" operators
-                // For "all time" we can use the "created_at" field in user data then select a date range
-                // https://dev.twitter.com/rest/public/search
-                // There is also (undocumented) page selection with "page=#" along with count: 
-                // https://dev.twitter.com/rest/public/timelines
-                // The most recent status ID is status.id in the user data
-        
-                // For date range we'll have to scan tweet lists manually.
-                var since = new Date();
-                switch (dateRange) {
-                    case '1d':  since.setDate(since.getDate()-1);           break;
-                    case '1w':  since.setDate(since.getDate()-7);           break;
-                    case '1m':  since.setMonth(since.getMonth()-1);         break;
-                    case '1y':  since.setFullYear(since.getFullYear()-1);   break;
-                    default:    since = undefined;
-                }
-                twitter.getTimeline(
-                    'user', 
-                    {
-                        screen_name: userData.screen_name, 
-                        count: maxTweets, 
-                        trim_user: true, 
-                        exclude_replies: true, 
-                        include_rts: false
-                    }, 
-                    accessData.accessToken, accessData.accessTokenSecret, 
-                    function(error, data, response) {
-                        if (error) {
-                            return authError(res, "Error getting tweets : " + JSON.stringify(error), 'error');
-                        }
+                
+                // Main request.
+                var params = {
+                    screen_name: userData.screen_name, 
+                    count: maxTweets, 
+                    trim_user: true, 
+                    exclude_replies: true, 
+                    include_rts: false
+                };
+                var main = function() {
+                    twitter.getTimeline(
+                        'user', 
+                        params,
+                        accessData.accessToken, accessData.accessTokenSecret, 
+                        function(error, data, response) {
+                            if (error) {
+                                return authError(res, "Error getting tweets : " + JSON.stringify(error), 'error');
+                            }
 
-                        if (since) {
-                            // Return tweets past the time limit.
                             var results = [];
                             for (var i = 0; i < data.length; i++) {
                                 var tweet = data[i];
+                                
+                                // Filter out tweets outside the date range.
                                 try {
-                                    if (new Date(tweet.created_at) >= since) {
-                                        results.push(tweet);
-                                    }
-                                } catch (e) {}
+                                    var date = getTimestamp(new Date(tweet.created_at));
+                                    if (since && date < since) continue;
+                                    if (until && date > until) continue;
+                                    results.push(tweet);
+                                } catch (e) {console.log(e)}
                             }
                             return res.send(results);
-                        } else {
-                            // Return complete list.
-                            return res.send(data);
+                            
+                        }
+                    );
+                };
+                
+                if (until) {
+                    /*
+                     * The idiotic Twitter API doesn't provide search results past 7 days, only filtering by status ID ('since_id', 'max_id'):
+                     *
+                     *      https://dev.twitter.com/rest/public/timelines
+                     *
+                     * And it doesn't provide a way to get an ID from a date either. So we have to use a convoluted way to get this ID value.
+                     * To do so, we use the Big Ben Clock twitter account (no kidding) because it posts tweets every hour. We use plain 
+                     * old web scraping with the public Twitter search page then extracts the highest status ID (given as 'data-tweet-id'
+                     * attributes on the web page).
+                     */
+                    var url = 'https://twitter.com/search?f=tweets&vertical=default&src=typd&q=from%3Abig_ben_clock%20until%3A' + until;
+                    request(url, function (error, response, body) {
+                        if (!error) {
+                            // Find max status ID. Normally they are sorted in decreasing values but you never know.
+                            var max = 0;
+                            var re = /data-tweet-id="(.*?)"/g;
+                            var match;
+                            while (match = re.exec(body)) {
+                                try {
+                                    var id = Number.parseInt(match[1]);
+                                    console.log(id);
+                                    if (max < id) max = id;
+                                } catch (e) {}
+                            }
+                            if (max) {
+                                params.max_id = max;
+                            }
                         }
                         
-                    }
-                );
+                        // Execute main request with the 'max_id' parameter above (if found).
+                        main();
+                    });
+                } else {
+                    // Execute main request directly.
+                    main();
+                }
             });
         };
         return;
@@ -435,14 +454,10 @@
      *  - Profile info.
      *  - Tweet texts & photos.
      *
-     *  @param options      Options object:
-     *                      - dateRange: Date range for messages, takes any of the following values:
-     *                          * undefined or empty: no range
-     *                          * 1d: past day
-     *                          * 1w: past week
-     *                          * 1m: past month
-     *                          * 1y: past year
-     *  @param callback     Function called with content info.
+     *  @param options          Options object.
+     *  @param options.since    Minimum date.
+     *  @param options.until    Maximum date.
+     *  @param callback         Function called with content info.
      */ 
     provider.fetch = function(options, callback) {
         var info = {success: false};
@@ -489,7 +504,14 @@
                 }
                 
                 // Issue Ajax call for tweets. Error conditions are handled by the global error handler.
-                $.getJSON('twitter/tweets', options)
+                var params = {};
+                if (options.since) {
+                    params.since = getTimestamp(options.since);
+                }
+                if (options.until) {
+                    params.until = getTimestamp(options.until);
+                }
+                $.getJSON('twitter/tweets', params)
                 .done(function(data, textStatus, jqXHR) {
                     for (var i = 0; i < data.length; i++) {
                         var tweet = data[i];

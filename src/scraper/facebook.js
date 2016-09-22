@@ -70,17 +70,6 @@
     });
 
     /**
-     * Get Unix timestamp from Javascript date.
-     *
-     *  @param date     Javascript date.
-     *
-     *  @return Unix timestamp = date.getTime() / 1000
-     */
-    var getTimestamp = function(date) {
-        return Math.floor(date.getTime()/*ms*/ / 1000);
-    };
-    
-    /**
      * Ensure that the Facebook user is logged & the app is authenticated before issuing calls.
      *
      *  @param callback     Function called with auth result.
@@ -106,38 +95,24 @@
     /**
      * Get posts from Facebook user timeline.
      *
-     *  @param options      Options object:
-     *                      - dateRange: Date range for messages, takes any of the following values:
-     *                          * undefined or empty: no range
-     *                          * 1d: past day
-     *                          * 1w: past week
-     *                          * 1m: past month
-     *                          * 1y: past year
-     *  @param callback     Function called with results.
+     *  @param options          Options object.
+     *  @param options.since    Minimum date.
+     *  @param options.until    Maximum date.
+     *  @param callback         Function called with results.
      *
      *  @see provider.fetch()
      */
     var getUserPosts = function(options, callback) {
         // Parameters passed to /me/posts.
-        var params = "?limit=" + maxPosts;
+        var params = '?limit=' + maxPosts;
         
-        
-        // TODO select random window in date range
-        // We can use "until" param along with "since"
-        // For "all time" we have to find the oldest one iteratively
-        
-        // For date range we use time-based pagination:
+        // For date range we use time-based pagination with 'since' & 'until' parameters:
         //  https://developers.facebook.com/docs/graph-api/using-graph-api#time
-        var since = new Date();
-        switch (options.dateRange) {
-            case '1d':  since.setDate(since.getDate()-1);           break;
-            case '1w':  since.setDate(since.getDate()-7);           break;
-            case '1m':  since.setMonth(since.getMonth()-1);         break;
-            case '1y':  since.setFullYear(since.getFullYear()-1);   break;
-            default:    since = undefined;
+        if (options.since) {
+            params += '&since=' + getTimestamp(options.since);
         }
-        if (since) {
-            params += "&since=" + getTimestamp(since);
+        if (options.until) {
+            params += '&until=' + getTimestamp(options.until);
         }
         
         // Get data from current result page, and continue to next page if needed.
@@ -295,14 +270,10 @@
      *  - Profile info.
      *  - Post texts & photos.
      *
-     *  @param options      Options object:
-     *                      - dateRange: Date range for messages, takes any of the following values:
-     *                          * undefined or empty: no range
-     *                          * 1d: past day
-     *                          * 1w: past week
-     *                          * 1m: past month
-     *                          * 1y: past year
-     *  @param callback     Function called with content info.
+     *  @param options          Options object.
+     *  @param options.since    Minimum date.
+     *  @param options.until    Maximum date.
+     *  @param callback         Function called with content info.
      */ 
     provider.fetch = function(options, callback) {
         var info = {success: false};

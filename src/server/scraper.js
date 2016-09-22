@@ -11,6 +11,14 @@ global.Provider = require('../scraper/provider.js');
 global.providers = {};
 
 /*
+ * Utilities.
+ */
+var utils = require('../scraper/utils.js');
+for (var key in utils) {
+    global[key] = utils[key];
+}
+
+/*
  * These files will add their own Provider-based objects to the global *providers* array.
  */
 require('../scraper/facebook.js');

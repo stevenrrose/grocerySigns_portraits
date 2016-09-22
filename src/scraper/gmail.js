@@ -30,7 +30,7 @@
     
     // Gmail settings.
     var CLIENT_ID = "612453794408-nqvjmtgmsm0am8l9o2rahu36mlrg0qgd.apps.googleusercontent.com";
-    var SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
+    var SCOPES = 'profile https://www.googleapis.com/auth/gmail.readonly';
     
     // Load the SDK asynchronously.
     window.gmAsyncInit = function() {
@@ -467,7 +467,7 @@
                         var profile = response.result[getProfileId].result;
                         
                         // Meta info.
-                        info.id = profile.emailAddress||'';
+                        info.id = people.id||'';
                         info.url = 'mailto:'+profile.emailAddress;
                         info.label = people.displayName||'';
                         

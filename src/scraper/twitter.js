@@ -279,7 +279,6 @@
                             while (match = re.exec(body)) {
                                 try {
                                     var id = Number.parseInt(match[1]);
-                                    console.log(id);
                                     if (max < id) max = id;
                                 } catch (e) {}
                             }

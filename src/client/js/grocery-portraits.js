@@ -497,7 +497,6 @@ function scrapeRandom(provider, dateRange, dateSpan) {
             
             options.since = since;
             options.until = until;
-console.log(since, until);
         }
         
         // Fetch content from provider.

@@ -201,11 +201,18 @@ function getFileName(index) {
     }
     
     var provider = $("#source option:selected").text();
-    var filename = provider + "-" + currentState.id + "-" + templateName;
-    if (currentState.randomize) {
-        filename += "-" + currentState.seed;
+    var components = [];
+    components.push(currentState.provider);
+    components.push(currentState.id);
+    if (currentState.since || currentState.until) {
+        components.push(currentState.since||'');
+        components.push(currentState.until||'');
     }
-    return filename + ".pdf";
+    components.push(templateName);
+    if (currentState.randomize) {
+        components.push(currentState.seed);
+    }
+    return components.join('-') + '.pdf';
 }
 
 /**
@@ -363,8 +370,9 @@ function populateFields() {
  *
  *  @param provider     Item provider descriptor.
  *  @param info         Item info.
+ *  @param options      Options object passed to provider.fetch().
  */
-function fetchCallback(provider, info) {
+function fetchCallback(provider, info, options) {
     if (info.success) {
         // GA: successful scrape.
         ga('send', 'event', {
@@ -386,6 +394,9 @@ function fetchCallback(provider, info) {
         // Update app state with new info.
         updateState({
             provider: provider.name,
+            id: info.id,
+            since: (options.since ? getTimestamp(options.since) : undefined),
+            until: (options.until ? getTimestamp(options.until) : undefined),
             randomize: $("#randomize").prop('checked'),
             seed: seed,
             sentences: sentences,
@@ -513,7 +524,7 @@ function scrapeRandom(provider, dateRange, dateSpan) {
         });
 
         try {
-            provider.fetch(options, function(info) {fetchCallback(provider, info);});
+            provider.fetch(options, function(info) {fetchCallback(provider, info, options);});
         } catch (e) {
             console.log("exception", e);
             displayMessage(false, "Exception!", "Exception: " + e);
@@ -736,17 +747,22 @@ function updateState(state, replace) {
     currentHash = hash;
     currentState = state;
     
-    /*TODO
     if (replace) {
         history.replaceState(state, null);
     } else {
-        var url = '/'+state.provider+'/'+state.id;
+        var components = [];
+        components.push(state.provider);
+        components.push(state.id);
+        if (state.since || state.until) {
+            components.push(state.since||'');
+            components.push(state.until||'');
+        }
+        var url = '#' + components.join('-');
         if (state.randomize) {
             url += '?randomize=' + state.seed;
         }
-        history.pushState(state, null, url);
+        history.pushState(state, null/*, url*/);
     }
-    */
     
     computeActualMaxFieldLengths(state.seed);
     populateFields();

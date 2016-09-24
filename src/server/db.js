@@ -9,73 +9,33 @@ mongoose.connect('mongodb://localhost/grocery-portraits');
 var Schema = mongoose.Schema;
 
 /**
- * Image
+ * SavedPage
  * 
- * Mongoose model for downloaded image data.
+ * Mongoose model for saved pages.
  * 
- * @property url URL of image (unique key)
- * @property type MIME type of image
- * @property data Binary image data
- * 
- * @see /scraper/fetchImage?url={url}
- */
-var imageSchema = new Schema({
-    url: { type: String, index: { unique: true }},
-    type: String,
-    data: Buffer
-});
-var Image = mongoose.model('Image', imageSchema);
-
-/**
- * ScraperResult
- * 
- * Mongoose model for scraper results.
- * 
- * @property provider data provider ID (e.g. 'OkCupid')
- * @property id provider-local page ID (e.g. 'hotgirl90')
- * @property seed default seed
- * @property sentences array of strings from scraped page
- * @property images array of image URLs from scraped page
- * @property bookmarks array of saved permutation seeds
- * 
- * @see /scraper/bookmark
- */
-var scraperResultSchema = new Schema({
-    provider: String,
-    id: String,
-    seed: Number,
-    sentences: [String],
-    images: [String],
-    bookmarks: [Number]
-});
-scraperResultSchema.index({provider: 1, id: 1}, { unique: true});
-scraperResultSchema.index({seed: 1});
-var ScraperResult = mongoose.model('ScraperResult', scraperResultSchema);
-
-/**
- * Bookmark
- * 
- * Mongoose model for bookmarks.
- * 
+ * @property filename page file name
  * @property date date of save op
  * @property caller client application ID
- * @property provider data provider ID (e.g. 'OkCupid')
- * @property id provider-local page ID (e.g. 'hotgirl90')
- * @property seed saved permutation seed (optional)
+ * @property provider data provider ID (e.g. 'Twitter')
+ * @property contentType MIME type of the page file
+ * @property data page data
+ * 
+ * @see /savePage
  */
-var bookmarkSchema = new Schema({
+var savedPageSchema = new Schema({
+    filename: { type: String, index: {unique: true} },
     date: { type: Date, default: Date.now},
     caller: String,
     provider: String,
-    id: String,
-    seed: Number
+    contentType: String,
+    data: Buffer
 });
-bookmarkSchema.index({date: 1});
-var Bookmark = mongoose.model('Bookmark', bookmarkSchema);
+savedPageSchema.index({date: 1});
+savedPageSchema.index({provider: 1});
+savedPageSchema.index({provider: 1, date: 1});
+var SavedPage = mongoose.model('SavedPage', savedPageSchema);
 
 /**
  * Exports.
  */
-exports.Image = Image;
-exports.ScraperResult = ScraperResult;
-exports.Bookmark = Bookmark;
+exports.SavedPage = SavedPage;

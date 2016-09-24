@@ -4,9 +4,6 @@
  *
  */
  
-/** Override default fetch URL. */
-fetchUrl = "scraper/fetch";
-
 /** Image fetch URL. */
 var fetchImage = "scraper/fetchImage";
 
@@ -261,8 +258,21 @@ function refreshFrame(index) {
     
     // Eventually output the blob into given container.
     stream.on('finish', function() {
-        var url = stream.toBlobURL('application/pdf');
+        // Get & remember blob object.
+        var blob = stream.toBlob('application/pdf');
+        $(container).data("blob", blob);
+        
+        // Clear previous blob URL and remember new one.
+        var url = $(container).data("blobUrl");
+        if (url) {
+            window.URL.revokeObjectURL(url);
+        }
+        url = window.URL.createObjectURL(blob);
+        $(container).data("blobUrl", url);
+
+        // Render blob URL into container.
         renderPDF(url, container);
+        
         // Set link attributes.
         var index = $(container).data("index");
         $("#page-download-" + index)
@@ -646,59 +656,48 @@ $(function() {
 
 /*
  * 
- * Bookmarks.
+ * Saving.
  * 
  */
 
 /**
- * Bookmark the given result in DB for later retrieval.
- * 
- * @param info  Data to store.
+ * Save all current pages at once.
+ *
+ *  @see savePage()
  */
-function bookmarkResult(info) {
-    $.ajax({
-        method: "POST",
-        url: 'scraper/bookmark',
-        processData: false,
-        data: JSON.stringify(info),
-        contentType: 'application/json',
-        error: function(jqXHR, textStatus, errorThrown) {
-            console.log("ajaxError", textStatus, errorThrown);
-            displayMessage(false, "Ajax error!", "Ajax error: " + errorThrown);
-        }
+function saveAll() {
+   // Call savePage on each active page.
+    $(".page").each(function(index) {
+        savePage(index);
     });
 }
 
 /**
- * Bookmark the given seed in DB.
- * 
- * @param seed  Seed value.
+ * Save the PDF page.
+ *  
+ *  @param index    Page index.
+ *  
+ *  @see saveAll()
  */
-function bookmarkSeed() {
-    console.log(currentState);
-    if (!currentState || !currentState.id) {
-        // No current state to bookmark.
-        return;
-    }
-    var info = {
-        provider: currentState.provider,
-        id: currentState.id,
-        seed: currentState.seed,
-    };
+function savePage(index) {
+    var container = $("#page-" + index);
+    var blob = $(container).data("blob");
+    var fileName = getFileName(index);
+    console.log("Saving "+ fileName);
+
     $.ajax({
         method: "POST",
         headers: {"X-Scrape-App": "Web"},
-        url: 'scraper/bookmarkSeed',
+        url: 'savePage' + (fileName ? '?filename=' + encodeURIComponent(fileName) : ''),
         processData: false,
-        data: JSON.stringify(info),
-        contentType: 'application/json',
+        data: blob,
+        contentType: blob.type,
         success: function(data, textStatus, jqXHR) {
-            // GA: saved permutation.
-            var label = 
+            // GA: saved page.
             ga('send', 'event', {
-                eventCategory: 'Bookmark',
+                eventCategory: 'Page',
                 eventAction: 'saved',
-                eventLabel: currentState.provider + " ID=" + currentState.id + " seed=" + currentState.seed,
+                eventLabel: fileName,
                 'dimension1': currentState.name,
                 'metric3': 1
             });
@@ -737,7 +736,8 @@ function updateState(state, replace) {
     
     $("#source option[value='" + state.provider + "']").prop('selected', true);
     $("#randomize").prop('disabled', false).prop('checked', state.randomize).closest('label').removeClass('disabled');
-    $("#seed, #genSeed, #bookmarkSeed").prop('disabled', !state.randomize);
+    $("#save, .page-save").prop('disabled', false).removeClass('disabled');
+    $("#seed, #genSeed").prop('disabled', !state.randomize);
     $("#seed").val(state.seed);
     if (typeof(currentState) === 'undefined' || JSON.stringify(state.images) !== JSON.stringify(currentState.images) /* FIXME: ugly but straightforward */) {
         loadImages(state);

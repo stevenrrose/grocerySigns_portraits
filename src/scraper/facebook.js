@@ -142,7 +142,7 @@
         };
         
         // Issue main request.
-        FB.api('/me/posts' + params, {fields: 'message,picture'}, function(response) {
+        FB.api('/me/feed' + params, {fields: 'message,picture'}, function(response) {
             var info = {};
             if (response.error) {
                 // Pass error to callback.

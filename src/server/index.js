@@ -216,48 +216,20 @@ app.get('/random', function(req, res) {
  * Pick & redirect to random page.
  */
 app.get('/random.pdf', function(req, res, next) {
-    // Try to find scrape with nonempty bookmark list.
-    var find = function() {
-        // Random seed value used to select the scrape.
-        var seed = generateRandomSeed();
-        
-        //TODO use SavedPage instead
-        ScraperResult.findOne({seed: {$gte: seed}, $nor: [ {bookmarks: {$exists: false}}, {bookmarks: {$size: 0}} ]}, "provider id bookmarks", function(err, result) {
-            if (err) return next(err);
+    // Select random SavedPage. The most efficient way to select a random document in a MongoDB 
+    // collection is to use the aggregate function with the $sample operator.
+    SavedPage.aggregate([{$sample: {size: 1}}], function(err, result) {
+        if (err) return next(err);
 
-            if (!result) {
-                // Try again.
-                find();
-                return;
-            }
-            
-            // Found, pick a random bookmarked seed.
-            var params = {}
-            params.provider = result.provider;
-            params.id = result.id;
-            params.seed = result.bookmarks[Math.floor(Math.random() * result.bookmarks.length)];
-            
-            // Choose random template and color.
-            var templateNames = Object.keys(templates.templates);
-            params.template = templateNames[Math.floor(Math.random() * templateNames.length)];
-            var colors = ["black", "red", "blue"];
-            params.color = colors[Math.floor(Math.random() * colors.length)];
-            
-            // Redirect to PDF permalink.
-            var pdfURL = 
-                      '/' + encodeURIComponent(params.provider) 
-                    + '/' + encodeURIComponent(params.id)
-                    + '/' + encodeURIComponent(params.template) + '.pdf'
-                    + '?randomize=' + params.seed
-                    + '&color=' + params.color;
-            res.writeHead(307, {
-                'Location': pdfURL,
-                'Pragma': 'no-cache'
-            });
-            res.end();
-        });
-    };
-    find();
+        if (!result) {
+            // Not found, this implies the collection is empty.
+            return res.status(404).end("Not found");
+        }
+        
+        // Returns saved page data.
+        var page = result[0];
+        return res.contentType(page.contentType).send(page.data.buffer);
+    });
 });
 
 /**

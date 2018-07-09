@@ -1,10 +1,12 @@
+(async() => {
+
 process.chdir(__dirname);
 
-var request = require('request');
 var express = require('express');
 var bodyParser = require('body-parser');
 var cookieParser = require('cookie-parser');
 var swig = require('swig');
+var puppeteer = require('puppeteer');
 
 var scraper = require('./scraper.js');
 var templates = require('./templates.js');
@@ -14,6 +16,32 @@ var maxFilenameLength = 100;
 
 /** Max saved file size. */
 var maxFileSize = 80000;
+
+/*
+ *
+ * Headless Chrome.
+ * 
+ */
+
+const browser = await puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox']});
+// Change the user agent to fix issue with fonts: headless loads TTF instead
+// of woff2 and setst the wrong unicodeRange.
+let agent = await browser.userAgent();
+agent = agent.replace("HeadlessChrome", "Chrome");
+
+/*
+ * Outgoing requests.
+ */
+
+var request = require('request').defaults({
+    timeout: 10000, /* ms */
+    headers: {
+//        'User-Agent': agent /* Same as Chrome instance above */
+    }
+});
+
+// Used to debug outgoing requests.
+// request.debug = true;
 
 /**
  * 
@@ -195,6 +223,58 @@ app.get('/', function(req, res) {
 });
 
 /**
+ * svgPageTpl
+ * 
+ * Template file for *.svg HTML page.
+ */
+var svgPageTpl = swig.compileFile('../client/svg.html');
+
+/**
+ * /templates/:template.pdf?parameters={parameters}
+ * 
+ * On-demand PDF generation from parameters.
+ */
+app.get('/templates/:template.pdf', async (req, res, next) => {
+    const templateName = req.params.template;
+    if (!templates.templates[templateName]) {
+        // No such template.
+        return next();
+    }
+    const template = templates.templates[templateName];
+
+    // Forward to SVG version and convert to PDF.
+    const url = req.originalUrl.replace(".pdf", ".svg");
+    const browserPage = await browser.newPage();
+    await browserPage.setUserAgent(agent);
+    const response = await browserPage.goto('http://localhost:3001' + url, {waitUntil: 'networkidle0'});// FIXME URL
+    res.set('Content-Type', 'application/pdf');
+    res.send(await browserPage.pdf({width: template.width, height: template.height, pageRanges: '1'}));
+});
+
+/**
+ * /templates/:template.svg?parameters={parameters}
+ * 
+ * On-demand SVG page generation from parameters.
+ */
+app.get('/templates/:template.svg', async (req, res, next) => {
+    const template = req.params.template;
+    const parameters = JSON.parse(req.query.parameters);
+    if (!templates.templates[template]) {
+        // No such template.
+        return next();
+    }
+
+    // Generate SVG page.
+    res.send(svgPageTpl({ parameters : JSON.stringify({
+        template: template,
+        seed: parameters.seed,
+        fields: parameters.fields,
+        images: parameters.images,
+        options: parameters.options
+    })}));
+});
+
+/**
  * randomPageTpl
  * 
  * Template file for /random HTML page.
@@ -261,3 +341,5 @@ var server = app.listen(3001, function () {
 
   console.log('Grocery Portraits app listening on http://%s:%s', host, port);
 });
+
+})();

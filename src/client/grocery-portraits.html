@@ -33,6 +33,9 @@
     PDFJS.workerSrc = "js/pdfjs/build/pdf.worker.js";
     </script>
 
+    <!-- Raphaël -->
+    <script src="js/raphael.min.js"></script>
+
 	<!-- JavaScript Cookie -->
     <script src="js/js.cookie.js"></script>
 	
@@ -49,6 +52,9 @@
     <script src="scraper/twitter.js"></script>
     
     <!-- 2. Fonts, images & templates -->
+    <script>
+    var pdfMode = false;
+    </script>
     <script src="js/FontFile.js"></script>
     <script src="js/ImageFile.js"></script>
     <script src="templates.js"></script>
@@ -57,7 +63,9 @@
     <!-- 3. Main code -->
     <script src="js/grocery-portraits.js"></script>
     
+    <link rel="stylesheet" href="css/fonts.css">
     <link rel="stylesheet" href="css/grocery-portraits.css">
+    <link rel="stylesheet" href="css/print.css" media="print">
 </head>
 <body>
     <script>
@@ -68,7 +76,7 @@
 
     //TODO ga('create', 'UA-76046434-1', 'auto');
     </script>    
-    <div class="container-fluid">
+    <div id="header" class="container-fluid">
         <div class="page-header">
             <h1><sup><a href="http://www.destijlife.com/">3</a> </sup>Grocery Portraits</h1>
         </div>
@@ -87,6 +95,13 @@
                                 <option value="{{provider}}"{% if active_provider == provider %} selected{% endif %}>{{provider}}</option>
                                 {% endfor %}
                             </select>
+                            <script>
+                                $("#source option").each(function(i, e) {
+                                   if (typeof(providers[$(e).val()]) === 'undefined') {
+                                       $(e).prop('disabled', true);
+                                   }
+                                });
+                            </script>
                         </div>
                         
                         <!-- Random seed -->

@@ -1,0 +1,34 @@
+<html>
+<head>
+    <base href="../../">
+    <link rel="stylesheet" href="css/fonts.css">
+    <link rel="stylesheet" href="css/grocery-portraits.css">
+    <link rel="stylesheet" href="css/print.css" media="print">
+    <script src="js/raphael.min.js"></script>
+    <script>
+    var pdfMode = false;
+    </script>
+    <script src="js/FontFile.js"></script>
+    <script src="js/ImageFile.js"></script>
+    <script src="templates.js"></script>
+    <script src="generate.js"></script>
+    <script>
+    var parameters = {{parameters|safe}};
+    for (var i in parameters.images) {
+        if (typeof(parameters.images[i]) === 'string') {
+            parameters.images[i] = new ImageFile(parameters.images[i], imageLoaded);
+        }
+    }
+    computeActualMaxFieldLengths(parameters.seed);
+    function scheduleRefresh() {
+        refresh();
+    }
+    function refresh() {
+        document.getElementById("page").innerHTML = generateSVG(templates[parameters.template], parameters.fields, parameters.images, parameters.options);
+    }
+    </script>
+</head>
+<body>
+    <div id="page" class="page page-us"></div>
+</body>
+</html>

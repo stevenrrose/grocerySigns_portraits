@@ -20,15 +20,16 @@
     "cookie-parser": "^1.4.3",
     "express": "^4.13.3",
     "mongodb": "^2.0.48",
-    "mongoose": "^4.2.5",
+    "mongoose": "^4.13.14",
     "node-twitter-api": "^1.8.0",
     "pdf.js": "^0.1.0",
     "pdfkit": "^0.8.0",
+    "puppeteer": "^1.4.0",
     "request": "^2.65.0",
     "stream-buffers": "^3.0.0",
     "swig": "^1.4.2"
   },
   "scripts": {
-        "start": "node src\/server\/index.js"
+    "start": "node src/server/index.js"
   }
 }

@@ -9,8 +9,8 @@ var refreshEvent = null;
 
 
 /**
- * Add random PDF pages. Triggered by the infinite scroll mechanism  (spinning icon).
- * Each page element renders the /random.pdf file, which selects a random scrape permutation.
+ * Add random pages. Triggered by the infinite scroll mechanism (spinning icon).
+ * Each page element fetches /random.svg, which selects a random scrape permutation.
  */
 function appendPages(nb) {
     var $pages = $("#pages");
@@ -28,7 +28,7 @@ function appendPages(nb) {
         });
     }
     
-    // Add nb pages and render a random PDF within.
+    // Add nb pages and render a random SVG within.
     for (var i = 0; i < nb; i++) {
         // Create page container.
         var page = $("<div class='page'></div>").addClass(pageFormatClass);
@@ -37,7 +37,7 @@ function appendPages(nb) {
         );
                 
         // Load a random page in the container.
-        loadPage('random.json?_='+Math.random(), page);
+        loadPage('random.svg?_='+Math.random(), page);
     }
     
     // Move spinning icon to end of viewport.
@@ -47,14 +47,10 @@ function appendPages(nb) {
 function loadPage(url, container, options) {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
-    xhr.responseType = 'json';
     xhr.onload = function(e) {
         if (this.status == 200) {
-            // Remember parameters.
-            $(container).data('parameters', this.response)
-
-            // The scrape page is passed by the server as the X-Scrape-URL response header.
-            $(container).data('url', this.getResponseHeader('X-Scrape-URL'));
+            // Remember raw SVG data.
+            $(container).data('svg', this.response)
 
             refreshFrame(container);
         }
@@ -86,12 +82,8 @@ function refresh() {
  *  Refresh the SVG output frame.
  */
 function refreshFrame(container) {
-    var parameters = $(container).data('parameters');
-    var url = $(container).data('url');
-    var svg = generateSVG(templates[parameters.template], parameters.fields, parameters.images, parameters.options)
+    var svg = $(container).data('svg');
     $(container)
         .empty()
-        .append($("<a target='_blank'></a>")
-            .attr('href', url)
-            .append(svg));
+        .append(svg);
 }

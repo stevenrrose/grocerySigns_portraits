@@ -353,6 +353,10 @@ function refreshFrame(index) {
         // Generate the SVG.
         var svg = generateSVG(templates[templateName], scrapedTexts, scrapedImages, {color: color});
 
+        // Save SVG data.
+        var blob = new Blob([svg], {type: 'image/svg+xml'});
+        $(container).data("blob", blob);
+
         // Render SVG into container.
         renderSVG(svg, container);
             
@@ -755,7 +759,7 @@ function saveAll() {
 }
 
 /**
- * Save the PDF page.
+ * Save the page.
  *  
  *  @param index    Page index.
  *  

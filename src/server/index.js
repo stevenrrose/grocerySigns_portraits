@@ -291,11 +291,11 @@ app.get('/random', function(req, res) {
 });
 
 /**
- * /random.pdf
+ * /random.svg
  * 
  * Pick & redirect to random page.
  */
-app.get('/random.pdf', function(req, res, next) {
+app.get('/random.svg', function(req, res, next) {
     // Select random SavedPage. The most efficient way to select a random document in a MongoDB 
     // collection is to use the aggregate function with the $sample operator.
     SavedPage.aggregate([{$sample: {size: 1}}], function(err, result) {

@@ -66,7 +66,12 @@ var providers = Object.keys(scraper.providers);
  */
 var app = express();
 app.use(bodyParser.json());
-var cookiesOptions = require('../config/cookies.json');
+var cookiesOptions;
+try {
+    cookiesOptions = require('../config/cookies.local.json');
+} catch (e) {
+    cookiesOptions = require('../config/cookies.json');
+}
 app.use(cookieParser(cookiesOptions.secret));
 
 // Initialize provider-specific routes.

@@ -117,7 +117,7 @@ app.get('/scraper/fetchImage', function(req, res, next) {
 /**
  * /savePage
  * 
- * Store the posted PDF data into the *Page* collection.
+ * Store the posted page data into the *Page* collection.
  * 
  * @see SavedPage
  */
@@ -126,7 +126,8 @@ app.post('/savePage', function(req, res, next) {
     var contentLength = req.get('Content-Length');
     var caller = req.get('X-Scrape-App');
     var filename = req.query.filename;
-    var provider = filename.split('-')[0];
+    var provider = req.query.provider;
+    var userId = req.query.userId;
     
     // Basic validation.
     try {
@@ -154,6 +155,7 @@ app.post('/savePage', function(req, res, next) {
                 savedPage = new SavedPage;
                 savedPage.caller = caller;
                 savedPage.provider = provider;
+                savedPage.userId = userId;
                 savedPage.filename = filename;
                 savedPage.contentType = contentType;
                 savedPage.data = data;

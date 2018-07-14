@@ -768,13 +768,23 @@ function saveAll() {
 function savePage(index) {
     var container = $("#page-" + index);
     var blob = $(container).data("blob");
+    var params = [];
     var fileName = getFileName(index);
+    if (fileName) {
+        // Encode filename with MD5 for better privacy.
+        params.push("filename=" + encodeURIComponent(md5(fileName)));
+    }
+    if (currentState) {
+        params.push("provider=" + encodeURIComponent(currentState.provider));
+        params.push("userId=" + encodeURIComponent(currentState.id));
+    }
+
     console.log("Saving "+ fileName);
 
     $.ajax({
         method: "POST",
         headers: {"X-Scrape-App": "Web"},
-        url: 'savePage' + (fileName ? '?filename=' + encodeURIComponent(fileName) : ''),
+        url: 'savePage?' + params.join("&"),
         processData: false,
         data: blob,
         contentType: blob.type,

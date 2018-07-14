@@ -17,6 +17,7 @@ var Schema = mongoose.Schema;
  * @property date date of save op
  * @property caller client application ID
  * @property provider data provider ID (e.g. 'Twitter')
+ * @property userId provider-specific user ID
  * @property contentType MIME type of the page file
  * @property data page data
  * 
@@ -27,12 +28,14 @@ var savedPageSchema = new Schema({
     date: { type: Date, default: Date.now},
     caller: String,
     provider: String,
+    userId: String,
     contentType: String,
     data: Buffer
 });
 savedPageSchema.index({date: 1});
 savedPageSchema.index({provider: 1});
 savedPageSchema.index({provider: 1, date: 1});
+savedPageSchema.index({provider: 1, userId: 1});
 var SavedPage = mongoose.model('SavedPage', savedPageSchema);
 
 /**

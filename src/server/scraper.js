@@ -25,6 +25,7 @@ require('../scraper/facebook.js');
 require('../scraper/linkedin.js');
 require('../scraper/gmail.js');
 require('../scraper/twitter.js');
+require('../scraper/imap.js');
 
 // Exports the above *providers* variable.
 exports.providers = global.providers;

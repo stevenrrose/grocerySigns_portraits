@@ -1,6 +1,6 @@
 {
 	"consumerKey": "HDsvdYrvuBsP1FXIvszQor0ya",
 	"consumerSecret": "RM7KaOZ5SMQEzYX6b1kqjCwx4pN9o3TsUUEgnQ8IjLZ2zmEy3x",
-	"callback": "https://groceryportraits.destijlife.com/twitter/callback",
+	"callback": "http://localhost:3001/twitter/callback",
 	"cookiePassword": "dslfd grfdgn vklfjdgkbv hkfdjgvl kfdng vfd"
 }

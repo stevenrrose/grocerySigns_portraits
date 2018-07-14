@@ -246,7 +246,7 @@
                                 
                                 // Filter out tweets outside the date range.
                                 try {
-                                    var date = getTimestamp(new Date(tweet.created_at));
+                                    var date = getTimestampFromDate(new Date(tweet.created_at));
                                     if (since && date < since) continue;
                                     if (until && date > until) continue;
                                     results.push(tweet);
@@ -505,10 +505,10 @@
                 // Issue Ajax call for tweets. Error conditions are handled by the global error handler.
                 var params = {};
                 if (options.since) {
-                    params.since = getTimestamp(options.since);
+                    params.since = getTimestampFromDate(options.since);
                 }
                 if (options.until) {
-                    params.until = getTimestamp(options.until);
+                    params.until = getTimestampFromDate(options.until);
                 }
                 $.getJSON('twitter/tweets', params)
                 .done(function(data, textStatus, jqXHR) {

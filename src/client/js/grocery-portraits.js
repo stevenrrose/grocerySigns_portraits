@@ -491,8 +491,8 @@ function fetchCallback(provider, info, options) {
         updateState({
             provider: provider.name,
             id: info.id,
-            since: (options.since ? getTimestamp(options.since) : undefined),
-            until: (options.until ? getTimestamp(options.until) : undefined),
+            since: (options.since ? getTimestampFromDate(options.since) : undefined),
+            until: (options.until ? getTimestampFromDate(options.until) : undefined),
             randomize: $("#randomize").prop('checked'),
             seed: seed,
             sentences: sentences,

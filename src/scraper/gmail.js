@@ -194,10 +194,10 @@
         //  https://support.google.com/mail/answer/7190?hl=en
         params.q = '';
         if (options.since) {
-            params.q += ' after:' + getTimestamp(options.since);
+            params.q += ' after:' + getTimestampFromDate(options.since);
         }
         if (options.until) {
-            params.q += ' before:' + getTimestamp(options.until);
+            params.q += ' before:' + getTimestampFromDate(options.until);
         }
 
         // Returned results.
@@ -385,7 +385,7 @@
             var requestId = batch.add(gapi.client.gmail.users.messages.list({
                 userId: 'me', 
                 maxResults: 1, // Need only one.
-                q: 'before:' + getTimestamp(before) + ' after:' + getTimestamp(after)
+                q: 'before:' + getTimestampFromDate(before) + ' after:' + getTimestampFromDate(after)
             }));
             years[requestId] = y;
         }
@@ -412,7 +412,7 @@
                     var before = new Date(minYear, m+1, 1);
                     
                     // Enqueue request in batch.
-                    var requestId = batch.add(gapi.client.gmail.users.messages.list({userId: 'me', maxResults: 1, q: 'before:' + getTimestamp(before) + ' after:' + getTimestamp(after)}));
+                    var requestId = batch.add(gapi.client.gmail.users.messages.list({userId: 'me', maxResults: 1, q: 'before:' + getTimestampFromDate(before) + ' after:' + getTimestampFromDate(after)}));
                     months[requestId] = m;
                 }
                 batch.then(

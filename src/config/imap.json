@@ -1,0 +1,5 @@
+{
+	"login": "http://localhost:3001/imap/login",
+	"callback": "http://localhost:3001/imap/callback",
+	"cookiePassword": "dlkjgj fjdghtrfdh kbhrgfkdgb gfhgkbh gfh khgfjnh gfcvhb"
+}

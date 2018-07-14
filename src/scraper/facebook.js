@@ -109,10 +109,10 @@
         // For date range we use time-based pagination with 'since' & 'until' parameters:
         //  https://developers.facebook.com/docs/graph-api/using-graph-api#time
         if (options.since) {
-            params += '&since=' + getTimestamp(options.since);
+            params += '&since=' + getTimestampFromDate(options.since);
         }
         if (options.until) {
-            params += '&until=' + getTimestamp(options.until);
+            params += '&until=' + getTimestampFromDate(options.until);
         }
         
         // Get data from current result page, and continue to next page if needed.
@@ -215,7 +215,7 @@
             var until = new Date(y+1, 0, 1);
             years.push({
                 method: 'GET', 
-                relative_url: 'me/posts?fields=created_time&since=' + getTimestamp(since) + '&until=' + getTimestamp(until) + '&limit=1'
+                relative_url: 'me/posts?fields=created_time&since=' + getTimestampFromDate(since) + '&until=' + getTimestampFromDate(until) + '&limit=1'
             });
         }
         FB.api('/', 'POST', {batch: years}, function (response) {
@@ -235,7 +235,7 @@
                         var until = new Date(year, m+1, 1);
                         months.push({
                             method: 'GET', 
-                            relative_url: 'me/posts?fields=created_time&since=' + getTimestamp(since) + '&until=' + getTimestamp(until) + '&limit=1'
+                            relative_url: 'me/posts?fields=created_time&since=' + getTimestampFromDate(since) + '&until=' + getTimestampFromDate(until) + '&limit=1'
                         });
                     }
                     FB.api('/', 'POST', {batch: months}, function (response) {

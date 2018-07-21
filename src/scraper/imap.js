@@ -49,12 +49,47 @@
         var loginPageTpl = swig.compileFile(__dirname + '/imap_login.html');
         
         /**
+         * mailboxPageTpl
+         * 
+         * Template file for login page.
+         */
+        var mailboxPageTpl = swig.compileFile(__dirname + '/imap_mailbox.html');
+        
+        /**
          * callbackPageTpl
          * 
          * Template file for callback page.
          */
         var callbackPageTpl = swig.compileFile(__dirname + '/imap_callback.html');
 
+        /**
+         * Get list of box names and labels.
+         * 
+         * @param boxes IMAP box list from imap-simple 
+         * @param prefix Box name prefix
+         * 
+         * @return array of {name, label}.
+         */
+        var getBoxList = function(boxes, namePrefix, labelPrefix) {
+            namePrefix = namePrefix || '';
+            labelPrefix = labelPrefix || '';
+            let list = [];
+            for (const key in boxes) {
+                const box = boxes[key];
+                const name = namePrefix + key;
+                const label = labelPrefix + key;
+                list.push({name, label});
+                if (box.children) {
+                    list.push.apply(list, getBoxList(
+                        box.children, 
+                        name + box.delimiter,
+                        labelPrefix + '\xA0\xA0'
+                    ));
+                }
+            }
+            return list;
+        }
+        
         /**
          * Generic authentication error handler.
          *
@@ -117,12 +152,50 @@
             app.use(bodyParser.urlencoded({ extended: true }));
 
             /**
-             * /imap/login
+             * GET /imap/login
              *
              * Display IMAP login page.
              */
             app.get('/imap/login', function(req, res) {
-                return res.send(loginPageTpl({callbackUrl: imapConfig.callback}));
+                return res.send(loginPageTpl());
+            });
+
+            /**
+             * POST /imap/login
+             *
+             * Display IMAP mailbox selection page after login.
+             */
+            app.post('/imap/login', async function(req, res) {
+                // Generic error handler.
+                if (req.get("Referer") !== imapConfig.login) {
+                    return authError(res, "Access denied", 'forbiddden');
+                }
+
+                try {
+                    // Attempt to connect to IMAP server.
+                    const accessData = {
+                        imap: {
+                            user: req.body.username,
+                            password: req.body.password,
+                            host: req.body.host,
+                            port: req.body.port,
+                            tls: !!req.body.tls,
+                            authTimeout: 3000
+                        }
+                    };
+                    const connection = await imaps.connect(accessData);
+
+                    // Success! Now get mailboxes for user selection.
+                    const boxes = await connection.getBoxes();
+
+                    return res.send(mailboxPageTpl({
+                        params: req.body, 
+                        boxes: getBoxList(boxes), 
+                        callbackUrl: imapConfig.callback
+                    }));
+                } catch (e) {
+                    return authError(res, e.message, e.code);
+                }
             });
             
             /**
@@ -158,7 +231,8 @@
                         + encodeURIComponent(accessData.imap.user)
                         + "@" + host
                         + "/";
-                    const userData = {id: url, url: url, username: accessData.imap.user, host: host};
+                    const mailbox = req.body.mailbox || 'INBOX';
+                    const userData = {id: url, url: url, username: accessData.imap.user, host: host, mailbox: mailbox};
                     
                     // Store IMAP access data in authorization cookie.
                     res.cookie(authCookie, encrypt(JSON.stringify(accessData)), {signed: true});
@@ -178,17 +252,18 @@
              * Get timestamp of oldest message for the current user.
              */
             app.get('/imap/oldest', async function(req, res) {
-                // Get access data from cookie.
-                let accessData;
+                // Get access data & user data from cookie.
+                let accessData, userData;
                 try {
                     accessData = JSON.parse(decrypt(req.signedCookies[authCookie]));
+                    userData = JSON.parse(req.cookies[userCookie]);
                 } catch (e) {
                     // Missing or misformed cookie.
                     return authError(res, "Missing cookie", 'error');
                 }
                 try {
                     const connection = await imaps.connect(accessData);
-                    await connection.openBox('INBOX');
+                    await connection.openBox(userData.mailbox || 'INBOX');
                     
                     // Try to find oldest year with at least one message.
                     const thisYear = new Date().getFullYear();
@@ -217,10 +292,11 @@
                 var since = req.query.since;
                 var until = req.query.until;
  
-                // Get access data from cookie.
-                let accessData;
+                // Get access data & user data from cookie.
+                let accessData, userData;
                 try {
                     accessData = JSON.parse(decrypt(req.signedCookies[authCookie]));
+                    userData = JSON.parse(req.cookies[userCookie]);
                 } catch (e) {
                     // Missing or misformed cookie.
                     return authError(res, "Missing cookie", 'error');
@@ -228,7 +304,7 @@
 
                 try {
                     const connection = await imaps.connect(accessData);
-                    await connection.openBox('INBOX');
+                    await connection.openBox(userData.mailbox || 'INBOX');
 
                     // Get all messages in given date interval.
                     var fetchOptions = { bodies: ['HEADER.FIELDS (SUBJECT)'], struct: true };

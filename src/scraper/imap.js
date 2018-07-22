@@ -226,12 +226,13 @@
                     // Success!
                     console.log("IMAP user authenticated", accessData.imap.user);
                     const host = accessData.imap.host + ':' + accessData.imap.port;
+                    const mailbox = req.body.mailbox || 'INBOX';
                     const url = 
                         (accessData.imap.tls ? "imaps" : "imap") + "://"
                         + encodeURIComponent(accessData.imap.user)
                         + "@" + host
-                        + "/";
-                    const mailbox = req.body.mailbox || 'INBOX';
+                        + "/"
+                        + mailbox;
                     const userData = {id: url, url: url, username: accessData.imap.user, host: host, mailbox: mailbox};
                     
                     // Store IMAP access data in authorization cookie.

@@ -443,8 +443,24 @@
             }
         }, 100);
     };
-    
-    
+
+    /**
+     * Disconnect the IMAP user from the app  by clearing the cookies & local storage.
+     *
+     *  @param callback     Function called at the end of the process.
+     */     
+    var disconnect = function(callback) {
+        if (isAuthorized()) {
+            window.localStorage.removeItem(userDataKey);
+            Cookies.remove(authCookie);
+            Cookies.remove(userCookie);
+            provider.dispatchEvent(new CustomEvent('auth', {detail: {message: "Disconnected", authorized: false}}));
+        }
+        
+        callback('disconnected');
+    };
+ 
+
     /*
      *
      * Client interface.
@@ -498,6 +514,27 @@
                     case 'unknown':         info.message = "User not logged in";    break;
                     case 'not_authorized':  info.message = "Authorization denied";  break;
                     default:                info.message = "Authorization error";   break;
+                }
+            }
+            callback(info);
+        });
+    };
+    
+    /**
+     * Disconnect from IMAP.
+     *
+     *  @param callback     Function called with content info.
+     */ 
+    provider.disconnect = function(callback) {
+        var info = {};
+        disconnect(function(status) {
+            if (status == 'disconnected') {
+                info.success = true;
+                info.message = "Disconnected";
+            } else {
+                info.success = false;
+                switch (status) {
+                    default:    info.message = "Disconnection error";   break;
                 }
             }
             callback(info);

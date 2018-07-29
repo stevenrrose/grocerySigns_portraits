@@ -24,12 +24,12 @@
      *
      * Interface with the Facebook web API (client only).
      *
-     * App URL: https://developers.facebook.com/apps/112125819241682/dashboard/
+     * App URL: https://developers.facebook.com/apps/659250481078037/dashboard/
      *
      */
     
     // Facebook settings.
-    var APP_ID = '112125819241682';
+    var APP_ID = '659250481078037';
     var APP_SCOPES = 'public_profile,user_hometown,user_location,user_photos,user_friends,user_posts';
     
     // Load the SDK asynchronously.
@@ -82,6 +82,23 @@
             } else {
                 // Pass the callback to the login call.
                 FB.login(callback, {scope: APP_SCOPES});
+            }
+        });
+    };
+    
+    /**
+     * Disconnect the Facebook user from the app.
+     *
+     *  @param callback     Function called with auth result.
+     */     
+    var disconnect = function(callback) {
+        FB.getLoginStatus(function(response) {
+            if (response.status != 'connected') {
+                // Already disconnected, call the callback function directly.
+                callback(response);
+            } else {
+                // Pass the callback to the logout call.
+                FB.logout(callback);
             }
         });
     };
@@ -182,6 +199,28 @@
                     case 'unknown':         info.message = "User not logged in";    break;
                     case 'not_authorized':  info.message = "Authorization denied";  break;
                     default:                info.message = "Authorization error";   break;
+                }
+            }
+            callback(info);
+        });
+    };
+    
+    /**
+     * Disconnect from Facebook.
+     *
+     *  @param callback     Function called with content info.
+     */ 
+    provider.disconnect = function(callback) {
+        var info = {};
+        disconnect(function(response) {
+            console.log(response);
+            if (response.status != 'connected') {
+                info.success = true;
+                info.message = "Disconnected";
+            } else {
+                info.success = false;
+                switch (response.status) {
+                    default:    info.message = "Disconnection error";   break;
                 }
             }
             callback(info);

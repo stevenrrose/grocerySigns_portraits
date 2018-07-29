@@ -666,6 +666,26 @@ function authorize() {
 }
 
 /**
+ *  Disconnect the currently selected provider.
+ */
+function disconnect() {
+    try {
+        var provider = providers[$("#source").val()];
+        provider.disconnect(function(info) {
+            if (info.success) {
+                console.log(provider.name, info.message);
+            } else {
+                console.error(provider.name, info.message);
+            }
+            displayMessage(info.success, "Disconnection", provider.name + " " + info.message);
+        });
+    } catch (e) {
+        console.error("exception", e);
+        displayMessage(false, "Exception!", "Exception: " + e);
+    }
+}
+
+/**
  *  Scrape random data from the currently selected provider.
  */
 function scrapeFields() {
@@ -690,16 +710,18 @@ function providerChanged() {
     if (provider && provider.loaded) {
         if (provider.authorized) {
             $("#authorize").hide().prop('disabled', true);
-            $("#generate").show().prop('disabled', false);
+            $("#disconnect").show().prop('disabled', !provider.disconnect);
+            $("#generate").prop('disabled', false);
         } else {
             $("#authorize").show().prop('disabled', false);
-            $("#generate").hide().prop('disabled', true);
+            $("#disconnect").hide().prop('disabled', true);
+            $("#generate").prop('disabled', true);
         }
         $("#date, #dateSpan").prop('disabled', !provider.hasDate);
     } else {
-        $("#generate, #authorize").prop('disabled', true);
+        $("#generate, #authorize, #disconnect").prop('disabled', true);
         $("#authorize").show();
-        $("#generate").hide();
+        $("#disconnect").hide();
         $("#date").prop('disabled', true);
     }
 }

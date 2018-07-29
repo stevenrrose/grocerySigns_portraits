@@ -171,7 +171,21 @@
             function(reason) { callback({error: (reason && reason.message ? reason.message : 'denied')}); }
         );
     };
-    
+
+    /**
+     * Disconnect the Gmail user from the app.
+     *
+     *  @param callback     Function called with auth result.
+     */     
+    var disconnect = function(callback) {
+        var auth2 = gapi.auth2.getAuthInstance();
+        if (auth2.isSignedIn.get()) {
+            auth2.disconnect();
+        }
+
+        callback({});
+    };
+        
     /** Maximum number of messages to fetch. */
     var maxMessages = 100;
     
@@ -350,6 +364,19 @@
                 }
             }
             callback(info);
+        });
+    };
+    
+    /**
+     * Disconnect from Gmail.
+     *
+     *  @param callback     Function called with content info.
+     */ 
+    provider.disconnect = function(callback) {
+        var info = {};
+        disconnect(function(response) {
+            info.success = true;
+            info.message = "Disconnected";
         });
     };
     

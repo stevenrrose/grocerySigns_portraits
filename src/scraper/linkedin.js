@@ -103,6 +103,14 @@
             }
         });
     };
+    /**
+     * Disconnect the LinkedIn user from the app.
+     *
+     *  @param callback     Function called with auth result.
+     */     
+    var disconnect = function(callback) {
+        IN.User.logout(callback);
+    };
     
     
     /*
@@ -124,7 +132,26 @@
                 info.message = "Authorization granted";
             } else {
                 info.success = false;
-                info.message = "Authorization denied (NOTE: on iOS, try refreshing the page)";
+                info.message = "Authorization denied (NOTE: try refreshing the page if it fails repeatedly)";
+            }
+            callback(info);
+        });
+    };
+     
+    /**
+     * Disconnect from LinkedIn.
+     *
+     *  @param callback     Function called with content info.
+     */ 
+    provider.disconnect = function(callback) {
+        var info = {};
+        disconnect(function() {
+            if (!IN.User.isAuthorized()) {
+                info.success = true;
+                info.message = "Disconnected";
+            } else {
+                info.success = false;
+                info.message = "Disconnection error";
             }
             callback(info);
         });

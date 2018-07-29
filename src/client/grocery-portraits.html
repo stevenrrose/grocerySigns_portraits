@@ -105,9 +105,19 @@
                             </script>
                         </div>
                         
-                        <!-- Random seed -->
+                        <!-- Authorize/disconnect button -->
                         <div class="form-group col-sm-3">
-                            <label for="seed" class="control-label">Sequence No.</label>
+                            <label class="control-label hidden-xs">&nbsp;</label>
+                            <button type="button" id="authorize" class="btn btn-primary form-control" disabled>Authorize <span class="icon icon-authorize"></span></button>
+                            <button type="button" id="disconnect" class="btn btn-primary form-control" disabled style="display: none">Disconnect <span class="icon icon-disconnect"></span></button>
+                        </div>
+						
+                        <!-- Random seed -->
+                        <div class="form-group col-sm-3 col-half">
+                            <label for="seed" class="control-label">
+                                <span class="visible-lg-inline visible-xs-inline">Sequence No.</span>
+                                <span class="hidden-lg hidden-xs">Seq. No.</span>
+                            </label>
                             <input type="number" class="form-control" id="seed" placeholder="Seed" min="0" max="999999" disabled {% if active_state.randomize %}value="{{active_state.seed}}"{% endif %}>
                         </div>
                         <div class="form-group col-sm-3 col-half">
@@ -121,7 +131,7 @@
 						
                         
 						<!-- Global save button -->
-                        <div class="form-group col-sm-3">
+                        <div class="form-group col-sm-3 col-half">
                             <label class="control-label hidden-xs">&nbsp;</label>
                             <button type="button" id="save" class="btn btn-default btn-round form-control" disabled>Save <span class="glyphicon glyphicon-star-empty"></span></button>
                         </div>
@@ -146,11 +156,10 @@
                             </select>
                         </div>
 						
-                        <!-- Authorize/Generate button -->
+                        <!-- Generate button -->
                         <div class="form-group col-sm-3">
                             <label class="control-label hidden-xs">&nbsp;</label>
-                            <button type="button" id="authorize" class="btn btn-primary form-control" disabled>Authorize <span class="icon icon-authorize"></span></button>
-                            <button type="button" id="generate" class="btn btn-primary form-control" disabled style="display: none">Generate <span class="icon icon-generate"></span></button>
+                            <button type="button" id="generate" class="btn btn-primary form-control" disabled">Generate <span class="icon icon-generate"></span></button>
                         </div>
 						
 						<!-- Disclaimer link -->
@@ -169,6 +178,7 @@
                             saveAll();
                         });
 						$("#authorize").click(authorize);
+						$("#disconnect").click(disconnect);
 						$("#generate").click(scrapeFields);
                         </script>
                     </div>

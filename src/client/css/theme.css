@@ -502,6 +502,9 @@ input[type=number] {
 .icon-authorize:before {
     content: "\e60b";
 }
+.icon-disconnect:before {
+    content: "\e60b";/* TODO */
+}
 .icon-disclaimer:before {
     content: "\e60c";
 }

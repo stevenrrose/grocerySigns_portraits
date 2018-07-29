@@ -268,13 +268,15 @@
                     
                     // Try to find oldest year with at least one message.
                     const thisYear = new Date().getFullYear();
-                    let year;
-                    for (year = 2000 /* arbitrary */; year < thisYear; year++) {
+                    let oldest;
+                    for (let year = 2000 /* arbitrary */; year < thisYear; year++) {
                         const searchCriteria = [['BEFORE', new Date(year.toString())]];
                         const m = await connection.search(searchCriteria, {});
-                        if (m.length) break
+                        if (m.length) {
+                            oldest = m[0].attributes.date;
+                            break;
+                        }
                     }
-                    const oldest = new Date(year.toString());
                     return res.send(getTimestampFromDate(oldest).toString());
                 } catch (e) {
                     return authError(res, "Access denied", 'forbiddden');
@@ -558,7 +560,7 @@
                     $.getJSON('imap/oldest')
                         .done(function(data, textStatus, jqXHR) {
                             // Done!
-                            callback(new Date(data));
+                            callback(getDateFromTimestamp(data));
                         })
                         .always(function() {
                             if (!isAuthorized()) {
